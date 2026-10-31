@@ -22,6 +22,7 @@ BOT = {
     "show_config": {"state": "running", "dry_run": True, "strategy": "TrendRegimeV1"},
     "profit": {"profit_closed_coin": 12.5, "profit_closed_ratio": 0.0368, "closed_trade_count": 4,
                "winning_trades": 3, "losing_trades": 1, "max_drawdown": 0.02},
+    "balance": {"total_bot": 340.0},
     "status": [{"pair": "BTC/USDT:USDT", "is_short": True, "leverage": 6.7, "stake_amount": 17,
                 "profit_ratio": 0.012, "open_date": "2026-10-29 16:00:00"}],
     "trades?limit=15&order_by_id=false": {"trades": [
@@ -57,7 +58,7 @@ def fake_bot(monkeypatch, replies=BOT):
 def test_bot_status(tree, monkeypatch):
     fake_bot(monkeypatch)
     status = dash.bot_status()
-    assert status["reachable"] and status["state"] == "running"
+    assert status["reachable"] and status["state"] == "running" and status["equity"] == 340.0
     assert status["recent"][0]["pair"] == "ZEC/USDT:USDT"
     fake_bot(monkeypatch, None)
     assert dash.bot_status() == {"reachable": False, "error": "OSError"}

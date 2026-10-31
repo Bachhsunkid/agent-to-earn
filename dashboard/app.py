@@ -54,6 +54,7 @@ def bot_status() -> dict:
             "dry_run": config.get("dry_run"),
             "strategy": config.get("strategy"),
             "profit": bot_get("profit"),
+            "equity": bot_get("balance").get("total_bot"),
             "open_trades": bot_get("status"),
             # Closed trades, newest first (the API default returns the oldest).
             "recent": bot_get("trades?limit=15&order_by_id=false").get("trades", []),
@@ -280,7 +281,7 @@ def render_finances(site: dict, bot: dict, state: dict, now: datetime) -> str:
     entries = donations.ledger(site, state)
     total = sum(e["usd"] for e in entries if isinstance(e["usd"], (int, float)))
     profit = bot["profit"].get("profit_all_coin") if bot["reachable"] else None
-    eco = finance.economy(site, profit, total, now)
+    eco = finance.economy(site, profit, total, now, bot.get("equity"))
     season = f"day {int(eco['days']) + 1} of {eco['season_days']}" if eco["season_days"] else "no season dates in site.json"
     progress = "–" if eco["progress"] is None else f"{eco['progress']:.0%}"
     stats = [
@@ -292,6 +293,11 @@ def render_finances(site: dict, bot: dict, state: dict, now: datetime) -> str:
             f" · cover {eco['donation_cover']:.0%} of costs" if eco["donation_cover"] is not None else "")),
         ("Net (P&L + donations − costs)", usd(eco["net"])),
     ]
+    if eco["needed_return"]:
+        need = eco["needed_return"]
+        pace = "" if eco["monthly_pace"] is None else f" · pace now {usd(eco['monthly_pace'])}/month"
+        stats.append(("Needed per month on equity", f"{need['breakeven']:.1%} to break even, "
+                                                    f"{need['goal']:.1%} for the goal{pace}"))
     if eco["projected"]:
         p = eco["projected"]
         verdict = badge("on track", "good") if p["profit"] >= p["goal"] else badge("behind", "warn")

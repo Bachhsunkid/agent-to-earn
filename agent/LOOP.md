@@ -40,7 +40,11 @@ How to run commands (you start in the repo root):
   technical, freqtrade.strategy, freqtrade.vendor.qtpylib.indicators, datetime, math,
   functools, typing, guarded_strategy. Module level: imports, constants, one class.
 - No lookahead: no `shift(-n)`, no centered windows, no statistics over the whole series.
-- Fewer, better trades. Fees and funding are charged; Binance penalizes many small orders.
+- Fewer, better trades. Backtests charge 0.05% taker fees per side and funding; `bt.py`
+  reports `fees_abs`, `funding_abs` and `avg_hold_hours`, and `profit_total_abs` is net of
+  both. Fees are the biggest drag: on 2025-08 to 2026-10, TrendRegimeV1 paid $96 in fees on
+  $268 gross profit (1190 trades). Cutting trades that barely cover two fees is the
+  cheapest edge you can find.
 
 ## Procedure
 

@@ -515,6 +515,16 @@ def test_bt_metrics_summarize():
     assert out["per_pair"] == [{"pair": "BTC", "trades": 2, "profit_abs": 1.23}]
     assert out["exit_reasons"][0]["reason"] == "stop_loss"
     assert "per_pair" not in bt_metrics.summarize(stats, "S")
+    assert out["fees_abs"] == 0 and out["avg_hold_hours"] == 0
+
+
+def test_bt_metrics_trading_costs():
+    trades = [{"amount": 2.0, "open_rate": 100.0, "close_rate": 110.0, "fee_open": 0.0005, "fee_close": 0.0005,
+               "funding_fees": -0.25, "trade_duration": 120},
+              {"amount": 1.0, "open_rate": 50.0, "close_rate": 40.0, "fee_open": 0.0002, "fee_close": 0.0002,
+               "funding_fees": 0.05, "trade_duration": 60}]
+    assert bt_metrics.trading_costs(trades) == {"fees_abs": 0.23, "funding_abs": -0.2, "avg_hold_hours": 1.5}
+    assert bt_metrics.trading_costs([]) == {"fees_abs": 0, "funding_abs": 0, "avg_hold_hours": 0.0}
 
 
 def test_bt_metrics_main(monkeypatch, capsys):

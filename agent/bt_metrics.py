@@ -14,10 +14,20 @@ FIELDS = (
 )
 
 
+def trading_costs(trades: list[dict]) -> dict:
+    """Fees paid and funding (negative = paid) in stake currency; profit_total_abs is net of both."""
+    fees = sum((t.get("amount") or 0) * ((t.get("open_rate") or 0) * (t.get("fee_open") or 0)
+                                         + (t.get("close_rate") or 0) * (t.get("fee_close") or 0)) for t in trades)
+    hold = sum(t.get("trade_duration") or 0 for t in trades) / len(trades) / 60 if trades else 0.0
+    return {"fees_abs": round(fees, 2), "funding_abs": round(sum(t.get("funding_fees") or 0 for t in trades), 2),
+            "avg_hold_hours": round(hold, 1)}
+
+
 def summarize(stats: dict, strategy: str, detail: bool = False) -> dict:
     s = stats["strategy"][strategy]
     out = {k: s.get(k) for k in FIELDS}
     out["max_leverage"] = max((t["leverage"] for t in s.get("trades", [])), default=0.0)
+    out |= trading_costs(s.get("trades", []))
     if detail:
         out["per_pair"] = [
             {"pair": r["key"], "trades": r["trades"], "profit_abs": round(r["profit_total_abs"], 2)}

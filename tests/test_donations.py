@@ -189,6 +189,8 @@ def test_economy_keeps_donations_out_of_the_kpi():
     assert eco["progress"] == pytest.approx(6 / (20 * daily))
     assert eco["net"] == pytest.approx(6 + 9 - 10 * daily)
     assert eco["projected"]["profit"] == pytest.approx(6 / 10 * 92)
+    assert eco["needed_return"] is None and eco["monthly_pace"] == pytest.approx(6 / 10 * 365 / 12)
+    assert finance.economy(SITE, 6.0, 0, NOW, equity=300)["needed_return"] == {"breakeven": 0.1, "goal": 0.2}
     assert finance.economy({}, None, 0, NOW)["projected"] is None
 
 
@@ -219,7 +221,7 @@ def test_snapshot_publishes_donors_without_wallets_and_says_thanks():
 
 
 def test_dashboard_finances_section(monkeypatch):
-    bot = {"reachable": True, "dry_run": True, "profit": {"profit_all_coin": 4.0}}
+    bot = {"reachable": True, "dry_run": True, "profit": {"profit_all_coin": 4.0}, "equity": 300.0}
     state = state_with_transfers() | {"errors": ["eth: OSError: <down>"], "synced": {"bsc:x": "2026-10-31T11:55:00+00:00"},
                                       "gaps": [{"wallet": "eth:x", "from": 1, "to": 2, "at": "now"}]}
     site = SITE | {"donors": {**SITE["donors"], "names": {DONOR: "<b>Alice</b>"}}}
@@ -228,6 +230,7 @@ def test_dashboard_finances_section(monkeypatch):
     assert "&lt;b&gt;Alice&lt;/b&gt;" in page and "<b>Alice</b>" not in page
     assert "https://bscscan.com/tx/0xTX1" in page and "&lt;down&gt;" in page and "gap skipped" in page
     assert "Season end at this pace" in page and "bsc 11:55 UTC" in page
+    assert "10.0% to break even, 20.0% for the goal · pace now $12.17/month" in page
     assert "bot unreachable" in dash.render_finances(SITE, {"reachable": False}, don.empty_state(), NOW)
 
 

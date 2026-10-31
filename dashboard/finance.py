@@ -31,7 +31,8 @@ def _date(value) -> datetime | None:
         return None
 
 
-def economy(site: dict, profit: float | None, donations_usd: float, now: datetime) -> dict:
+def economy(site: dict, profit: float | None, donations_usd: float, now: datetime,
+            equity: float | None = None) -> dict:
     monthly = sum(float(c.get("usd") or 0) for c in site.get("costs_usd_per_month") or [])
     daily_cost = monthly * 12 / 365
     start, end = _date(site.get("started")), _date(site.get("ends"))
@@ -46,7 +47,11 @@ def economy(site: dict, profit: float | None, donations_usd: float, now: datetim
         # Linear: today's profit rate over the whole season. Crude, but honest about the goal.
         projected = {"profit": profit / days * season_days, "costs": daily_cost * season_days,
                      "goal": daily_cost * season_days * multiple}
+    # What the bot must earn per month on its equity to pay its costs, and to hit the goal.
+    needed = {"breakeven": monthly / equity, "goal": monthly * multiple / equity} if equity else None
+    pace = profit / days * 365 / 12 if days >= 1 else None
     return {"monthly": monthly, "days": days, "season_days": season_days, "multiple": multiple,
+            "needed_return": needed, "monthly_pace": pace,
             "spent": spent, "goal": goal, "profit": profit, "progress": profit / goal if goal > 0 else None,
             "donations": donations_usd, "donation_cover": donations_usd / spent if spent > 0 else None,
             "net": profit + donations_usd - spent, "projected": projected}
