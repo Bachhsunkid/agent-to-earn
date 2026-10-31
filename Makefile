@@ -6,7 +6,7 @@ CFG       := --config user_data/config.json
 DATA_FROM := 20250801
 STRATEGY  ?= $(shell python3 -c 'import json;print(json.load(open("user_data/config.strategy.json"))["strategy"])')
 
-.PHONY: help build env chat-id watchlist data test cov backtest lock up down logs soak loop public-url
+.PHONY: help build env chat-id watchlist data test cov backtest lock up down logs soak readiness loop public-url
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -49,6 +49,9 @@ logs: ## Follow the logs of all services
 
 soak: ## Stability over the last 24h: heartbeat uptime >= 95% and no errors
 	python3 scripts/soak_check.py
+
+readiness: ## Go-live check: paper trades vs backtest, sample size, uptime (also runs nightly)
+	$(COMPOSE) run --rm -T research python3 agent/readiness.py --write agent/runs/readiness/latest.json
 
 loop: ## Run one research loop now (in the research container)
 	$(COMPOSE) run --rm research agent/run_loop.sh

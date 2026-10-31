@@ -38,6 +38,10 @@ if ! freqtrade download-data --config user_data/config.json --timerange "$DATA_F
   exit 1
 fi
 
+# Go-live readiness for the dashboard. Its output covers held-out data, so it goes only to a
+# directory the agent may not read, never to $LOG. A failure here never blocks research.
+python3 agent/readiness.py --write agent/runs/readiness/latest.json >/dev/null 2>&1 || true
+
 # Only the permissions in agent/loop.settings.json apply: user-level allow rules and
 # MCP servers are not loaded, and anything not allowed is denied without asking.
 claude -p "$(cat agent/LOOP.md)" \

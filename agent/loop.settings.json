@@ -19,6 +19,8 @@
       "Bash(set)",
       "Read(user_data/*.sqlite*)",
       "Read(agent/runs/gate/**)",
+      "Read(agent/runs/readiness/**)",
+      "Read(user_data/backtest_results/readiness/**)",
       "Read(user_data/backtest_results/gate/**)",
       "Edit(user_data/strategies/guarded_strategy.py)",
       "Edit(user_data/strategies/live/**)",

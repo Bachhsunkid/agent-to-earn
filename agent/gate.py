@@ -46,6 +46,7 @@ PROTECTED = [
     "agent/bt_metrics.py",
     "agent/notify.py",
     "agent/perf_snapshot.py",
+    "agent/readiness.py",
     "agent/LOOP.md",
     "agent/loop.settings.json",
     "agent/run_loop.sh",

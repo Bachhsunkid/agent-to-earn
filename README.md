@@ -117,6 +117,7 @@ The Makefile holds optional shortcuts:
 | `make logs` | Follow the logs of all services |
 | `make public-url` | Print the public page URL (quick tunnel) |
 | `make soak` | Stability over the last 24h: heartbeat uptime >= 95%, no errors |
+| `make readiness` | Go-live check: paper trades vs backtest, sample size, uptime |
 | `make loop` | Run one research loop now (data refresh, Claude, gate) |
 | `make backtest STRATEGY=Name` | In-sample backtest (latest 120 days are held out) |
 | `make test` / `make cov` | Test suite / with coverage |
@@ -129,6 +130,12 @@ the source of truth for the live strategy. Commit those changes from it, or expe
 conflicts on `git pull`.
 
 ## Going live
+
+Wait for the dashboard's **Go-live readiness** section to say *ready to go live*
+([ADR-0005](docs/adr/0005-go-live-readiness.md)): at least 14 days and 20 closed paper trades,
+at least 70% of them matching the backtest of the same days, paper P&L positive and not far
+below the backtest, and 95% uptime. It runs before every research loop; `make readiness`
+runs it now. Then:
 
 1. Binance: enable Futures, set Position Mode = One-way and Asset Mode = Single-Asset.
 2. Create an API key with **Enable Futures only, withdrawals off**; whitelist the VM IP.

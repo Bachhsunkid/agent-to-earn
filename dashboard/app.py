@@ -99,6 +99,13 @@ def journal_entries(limit: int = 14) -> list[dict]:
     return entries
 
 
+def readiness_report() -> dict | None:
+    try:
+        return json.loads((common.RUNS / "readiness" / "latest.json").read_text())
+    except (OSError, ValueError):
+        return None
+
+
 def donation_state() -> dict:
     return donations.load_state(Path(DONATIONS_STATE)) if DONATIONS_STATE else donations.empty_state()
 
@@ -323,6 +330,25 @@ def render_finances(site: dict, bot: dict, state: dict, now: datetime) -> str:
 {"<p>" + " ".join(problems) + "</p>" if problems else ""}</section>"""
 
 
+READINESS_BADGES = {"ready": ("ready to go live", "good"), "wait": ("keep paper trading", "muted-badge"),
+                    "not_ready": ("not ready", "bad"), "error": ("check failed", "bad")}
+CHECK_BADGES = {"pass": "good", "wait": "muted-badge", "fail": "bad", "info": "muted-badge"}
+
+
+def render_readiness(report: dict | None) -> str:
+    if not report:
+        return ('<section><h2>Go-live readiness</h2><p class="muted">No report yet. It runs before each '
+                'research loop; <code>make readiness</code> runs it now.</p></section>')
+    text, kind = READINESS_BADGES.get(report.get("verdict"), (report.get("verdict"), "bad"))
+    rows = [[badge(c["status"], CHECK_BADGES.get(c["status"], "bad")), esc(c["name"]), esc(c["detail"])]
+            for c in report.get("checks", [])]
+    return f"""<section><h2>Go-live readiness {badge(text, kind)}</h2>
+<p class="muted">Paper trading of <b>{esc(report.get("strategy") or "?")}</b> compared with its backtest over the
+same days · {esc(report.get("generated_at", "")[:16].replace("T", " "))} UTC · going live stays your decision
+(README, "Going live").</p>
+{table(["", "Check", "Detail"], rows, "No checks.")}</section>"""
+
+
 def render_research(journal: list[dict], runs: list[dict]) -> str:
     run_by_date = {}
     for run in runs:
@@ -404,6 +430,7 @@ def render_page() -> str:
     body = "".join([
         render_bot(bot),
         render_finances(finance.load_site(), bot, donation_state(), moment),
+        render_readiness(readiness_report()),
         render_research(journal_entries(), loop_runs()),
         render_gate(gate_reports()),
         render_strategies(strategies()),
