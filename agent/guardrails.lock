@@ -14,7 +14,7 @@
   "agent/bt_metrics.py": "501327224b68d2a4d9fbf22b5cf79d9bd64bbdb3371f72a5ff61330856ea72cc",
   "agent/notify.py": "1a87eb927ee103fd7f8f7a679ca979885519be0f09a7fa77142f83f48af1a7ae",
   "agent/perf_snapshot.py": "5a977176749822b905519a4d27d1afef7faea7c5e605aa02e515e0f1bca1b6ab",
-  "agent/LOOP.md": "74b1c9af1a6296b1451e1b91fca4c853da7bb54f635a4f58f6e865f6b04f060e",
+  "agent/LOOP.md": "215f97c3eaddd8a73fd5c095b345102a100a16d7ed823c390a51644b6a4b8a1a",
   "agent/loop.settings.json": "a1623f38264abc21464811cb43bf58b41cb2b1797e247253f220083b4a7273d9",
   "agent/run_loop.sh": "4ed9818f104fa437bb72d29a4a46b59a39048045c7db4901b7f76f2975fa327f",
   "agent/scheduler.sh": "a773b8ec3808e691080676a9f1d25d5c7b6eefb72f5beb338e54d3e4fb7ba523",

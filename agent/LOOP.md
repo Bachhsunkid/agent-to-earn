@@ -20,6 +20,13 @@ size, stop-loss, drawdown breakers and the equity floor live in
 
 Anything else is denied. Do not try to work around a denial.
 
+How to run commands (you start in the repo root):
+- Use the Read, Glob and Grep tools to list and read files, never `ls`, `cat`, `tail` or `cd`.
+- Run each allowed command exactly as shown above, as one plain command: no `cd`, `;`,
+  `&&`, `|` or redirections. Combined commands are denied even when each part is allowed.
+- A denial applies only to that exact command. Bash is not disabled: if a command is
+  denied, check it against the forms above and run the allowed form.
+
 ## Candidate contract
 
 - One class `<CamelName>(GuardedStrategy)` with a new name, e.g. `TrendRegimeV2`. Look at
