@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.freqtrade.io/schema.json",
+  "//": "Telegram and REST API settings, loaded only by the running bot (docker/bot-entrypoint.sh). Secrets are empty here and come from FREQTRADE__* variables set from .env.",
+  "telegram": {
+    "enabled": true,
+    "token": "",
+    "chat_id": "",
+    "notification_settings": {
+      "status": "off",
+      "warning": "on",
+      "exception": "on",
+      "startup": "off",
+      "entry": "off",
+      "entry_fill": "off",
+      "entry_cancel": "off",
+      "exit": {
+        "*": "off",
+        "liquidation": "on",
+        "emergency_exit": "on"
+      },
+      "exit_fill": {
+        "*": "off",
+        "liquidation": "on",
+        "emergency_exit": "on"
+      },
+      "exit_cancel": "off",
+      "protection_trigger": "off",
+      "protection_trigger_global": "on",
+      "liquidation_warning": "on",
+      "strategy_msg": "off",
+      "show_candle": "off"
+    },
+    "reload": true,
+    "balance_dust_level": 0.01
+  },
+  "api_server": {
+    "enabled": true,
+    "listen_ip_address": "0.0.0.0",
+    "listen_port": 8080,
+    "username": "",
+    "password": "",
+    "jwt_secret_key": "",
+    "ws_token": "",
+    "verbosity": "error",
+    "enable_openapi": false,
+    "CORS_origins": []
+  }
+}

@@ -1,0 +1,12 @@
+# Freqtrade runtime plus pytest and the Claude Code CLI: used by the research loop and
+# for tests/helper scripts. Claude Code ships a native binary through npm, so Node is only
+# needed at build time.
+FROM node:22.12.0-bookworm-slim AS claude
+RUN npm install -g @anthropic-ai/claude-code@2.1.314
+
+FROM freqtradeorg/freqtrade:2026.9
+COPY --from=claude /usr/local/lib/node_modules/@anthropic-ai /opt/claude/@anthropic-ai
+USER root
+RUN ln -s /opt/claude/@anthropic-ai/claude-code/bin/claude.exe /usr/local/bin/claude
+USER ftuser
+RUN pip install --user --no-cache-dir pytest==8.3.5 pytest-cov==6.1.1

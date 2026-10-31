@@ -1,0 +1,95 @@
+# Everything runs in containers. Configuration and secrets come from .env (copy
+# .env.example); each service gets only the variables it needs.
+
+# Bot API and urgent Telegram alerts, shared by the dashboard and the research loop.
+x-api-env: &api-env
+  API_USERNAME: ${API_USERNAME:-admin}
+  API_PASSWORD: ${API_PASSWORD:?set API_PASSWORD in .env}
+  TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:?set TELEGRAM_TOKEN in .env}
+  TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:?set TELEGRAM_CHAT_ID in .env}
+  BOT_API: http://freqtrade:8080/api/v1
+
+services:
+  # The trading bot. Dry-run unless DRY_RUN=false in .env.
+  freqtrade:
+    image: freqtradeorg/freqtrade:2026.9
+    container_name: agent-to-earn-bot
+    restart: unless-stopped
+    entrypoint: ["sh", "/bot-entrypoint.sh"]
+    environment:
+      # Strategies in live/ and candidates/ import guarded_strategy from the parent dir.
+      PYTHONPATH: /freqtrade/user_data/strategies
+      DRY_RUN: ${DRY_RUN:-true}
+      # Freqtrade merges FREQTRADE__SECTION__KEY variables over the config files.
+      FREQTRADE__TELEGRAM__TOKEN: ${TELEGRAM_TOKEN:?set TELEGRAM_TOKEN in .env}
+      FREQTRADE__TELEGRAM__CHAT_ID: ${TELEGRAM_CHAT_ID:?set TELEGRAM_CHAT_ID in .env}
+      FREQTRADE__API_SERVER__USERNAME: ${API_USERNAME:-admin}
+      FREQTRADE__API_SERVER__PASSWORD: ${API_PASSWORD:?set API_PASSWORD in .env}
+      FREQTRADE__API_SERVER__JWT_SECRET_KEY: ${API_JWT_SECRET:?set API_JWT_SECRET in .env}
+      FREQTRADE__API_SERVER__WS_TOKEN: ${API_WS_TOKEN:?set API_WS_TOKEN in .env}
+      FREQTRADE__EXCHANGE__KEY: ${BINANCE_KEY:-}
+      FREQTRADE__EXCHANGE__SECRET: ${BINANCE_SECRET:-}
+    volumes:
+      - ./user_data:/freqtrade/user_data
+      - ./docker/bot-entrypoint.sh:/bot-entrypoint.sh:ro
+    ports:
+      # FreqUI / REST API, localhost only. Use an SSH tunnel on the VM.
+      - "127.0.0.1:8080:8080"
+
+  # Read-only agent activity page (http://127.0.0.1:8081, FreqUI credentials) and the
+  # bot watchdog that sends urgent Telegram alerts. The bot image already ships FastAPI.
+  dashboard:
+    image: freqtradeorg/freqtrade:2026.9
+    container_name: agent-to-earn-dashboard
+    restart: unless-stopped
+    depends_on: [freqtrade]
+    working_dir: /workspace
+    entrypoint: []
+    environment:
+      <<: *api-env
+      PYTHONPATH: /workspace/agent
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - .:/workspace:ro
+    ports:
+      - "127.0.0.1:8081:8081"
+    command: python -m uvicorn dashboard.app:app --host 0.0.0.0 --port 8081 --no-access-log
+
+  # Nightly research loop: Claude Code proposes a strategy, the gate decides. It gets no
+  # exchange keys, and .env is masked so the agent cannot read the other secrets.
+  research:
+    build:
+      context: docker
+      dockerfile: Dockerfile.tools
+    image: agent-to-earn-tools:2026.9
+    container_name: agent-to-earn-research
+    restart: unless-stopped
+    depends_on: [freqtrade]
+    working_dir: /workspace
+    entrypoint: []
+    environment:
+      <<: *api-env
+      PYTHONPATH: /workspace/user_data/strategies
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      RESEARCH_AT: ${RESEARCH_AT:-01:00}
+      DISABLE_AUTOUPDATER: "1"
+    volumes:
+      - .:/workspace
+      - ./user_data:/freqtrade/user_data
+      - /dev/null:/workspace/.env:ro
+    command: agent/scheduler.sh
+
+  # Same image without secrets; used for tests and helper scripts (make test, make data).
+  tools:
+    build:
+      context: docker
+      dockerfile: Dockerfile.tools
+    image: agent-to-earn-tools:2026.9
+    profiles: ["tools"]
+    working_dir: /workspace
+    entrypoint: []
+    environment:
+      PYTHONPATH: /workspace/user_data/strategies
+    volumes:
+      - .:/workspace
+      - ./user_data:/freqtrade/user_data

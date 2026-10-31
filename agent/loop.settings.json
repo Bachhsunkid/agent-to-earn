@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit(user_data/strategies/candidates/**)",
+      "Edit(agent/journal/**)",
+      "Bash(python3 agent/bt.py:*)",
+      "Bash(python3 agent/gate.py:*)",
+      "Bash(python3 agent/perf_snapshot.py:*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(//proc/**)",
+      "Bash(env:*)",
+      "Bash(printenv:*)",
+      "Bash(export:*)",
+      "Bash(set)",
+      "Read(user_data/*.sqlite*)",
+      "Read(agent/runs/gate/**)",
+      "Read(user_data/backtest_results/gate/**)",
+      "Edit(user_data/strategies/guarded_strategy.py)",
+      "Edit(user_data/strategies/live/**)",
+      "Edit(user_data/*.json)",
+      "Edit(agent/*.py)",
+      "Edit(agent/*.sh)",
+      "Edit(agent/*.json)",
+      "Edit(agent/*.md)",
+      "Edit(agent/guardrails.lock)",
+      "Edit(tests/**)",
+      "Edit(scripts/**)",
+      "Edit(docker-compose.yml)",
+      "Edit(docker/**)",
+      "Edit(dashboard/**)",
+      "Edit(Makefile)",
+      "Edit(pytest.ini)",
+      "WebFetch",
+      "WebSearch"
+    ]
+  }
+}
