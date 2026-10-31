@@ -614,11 +614,12 @@ function renderFeed(snap, site) {
       qr ? el("img", { src: qr, alt: `QR ${w.label}`, width: "168", height: "168", loading: "lazy" }) : null));
   }
   for (const b of donate.bank || []) {
-    if (!b.account) continue;
+    // A QR alone is enough (e.g. Momo), so the account number need not be published as text.
     const qr = safeQr(b.qr);
+    if (!b.account && !qr) continue;
     cards.push(el("div", { class: "wallet" }, el("div", { class: "label" }, b.label),
       el("div", { class: "who" }, [b.bank, b.name].filter(Boolean).join(" · ")),
-      el("div", { class: "addr" }, el("code", {}, b.account), copyButton(b.account)),
+      b.account ? el("div", { class: "addr" }, el("code", {}, b.account), copyButton(b.account)) : null,
       qr ? el("img", { src: qr, alt: `QR ${b.label}`, width: "168", height: "168", loading: "lazy" }) : null));
   }
   fill("donate", cards.length ? cards : el("p", { class: "hint" }, t("no_donate")));
