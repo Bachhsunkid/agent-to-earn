@@ -2,7 +2,8 @@
 
 Runs next to FreqUI on 127.0.0.1:8081 with the same credentials as the Freqtrade API.
 It also hosts the watchdog: an urgent Telegram alert when the bot stops answering or
-leaves the RUNNING state (Freqtrade cannot report its own death).
+leaves the RUNNING state (Freqtrade cannot report its own death), and writes the sanitized
+snapshot for the public status page when PUBLIC_SNAPSHOT is set.
 """
 
 import asyncio
@@ -23,11 +24,13 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 import common
 import notify
+from dashboard import public_snapshot
 
 logger = logging.getLogger("dashboard")
 
 FREQUI_URL = os.environ.get("FREQUI_URL", "http://127.0.0.1:8080")
 WATCHDOG_INTERVAL = int(os.environ.get("WATCHDOG_INTERVAL", "60"))
+PUBLIC_SNAPSHOT = os.environ.get("PUBLIC_SNAPSHOT")
 JOURNAL = common.ROOT / "agent" / "journal"
 
 
@@ -150,11 +153,30 @@ async def watchdog_loop() -> None:
         await asyncio.sleep(WATCHDOG_INTERVAL)
 
 
+def write_public_snapshot(path: Path) -> None:
+    healthy = None if watchdog.last_check is None else watchdog.failures == 0
+    snapshot = public_snapshot.build(bot_get, journal_entries(), loop_runs(limit=400), gate_reports(limit=50),
+                                     strategies(), healthy)
+    public_snapshot.write(snapshot, path)
+
+
+async def snapshot_loop(path: Path) -> None:
+    while True:
+        try:
+            await asyncio.to_thread(write_public_snapshot, path)
+        except OSError as exc:
+            logger.warning("public snapshot not written: %s", exc)
+        await asyncio.sleep(WATCHDOG_INTERVAL)
+
+
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI):
-    task = asyncio.create_task(watchdog_loop())
+    tasks = [asyncio.create_task(watchdog_loop())]
+    if PUBLIC_SNAPSHOT:
+        tasks.append(asyncio.create_task(snapshot_loop(Path(PUBLIC_SNAPSHOT))))
     yield
-    task.cancel()
+    for task in tasks:
+        task.cancel()
 
 
 # --- web -----------------------------------------------------------------------

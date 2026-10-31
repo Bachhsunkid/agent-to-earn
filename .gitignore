@@ -11,6 +11,13 @@ user_data/*.sqlite
 user_data/*.sqlite-*
 user_data/strategies_archive/
 
+# Public page: snapshot written at runtime, operator's site config and QR images
+user_data/public/*
+!user_data/public/.gitkeep
+public/site.json
+public/static/qr/*
+!public/static/qr/.gitkeep
+
 # Agent runtime artifacts
 agent/journal/
 agent/runs/

@@ -6,7 +6,7 @@ CFG       := --config user_data/config.json
 DATA_FROM := 20250801
 STRATEGY  ?= $(shell python3 -c 'import json;print(json.load(open("user_data/config.strategy.json"))["strategy"])')
 
-.PHONY: help build env chat-id watchlist data test cov backtest lock up down logs soak loop
+.PHONY: help build env chat-id watchlist data test cov backtest lock up down logs soak loop public-url
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -30,7 +30,7 @@ test: ## Run the test suite
 	$(TOOLS) pytest
 
 cov: ## Run tests with coverage for guardrails, strategies and the agent tooling
-	$(TOOLS) pytest --cov=user_data/strategies --cov=agent --cov=dashboard --cov-report=term-missing
+	$(TOOLS) pytest --cov=user_data/strategies --cov=agent --cov=dashboard --cov=public --cov-report=term-missing
 
 backtest: ## Backtest a strategy in-sample (STRATEGY=Name, default: live)
 	$(TOOLS) python agent/bt.py $(STRATEGY)
@@ -52,3 +52,6 @@ soak: ## Stability over the last 24h: heartbeat uptime >= 95% and no errors
 
 loop: ## Run one research loop now (in the research container)
 	$(COMPOSE) run --rm research agent/run_loop.sh
+
+public-url: ## Print the public page URL (Cloudflare quick tunnel; changes on restart)
+	@$(COMPOSE) logs cloudflared | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1

@@ -51,6 +51,8 @@ PROTECTED = [
     "agent/run_loop.sh",
     "agent/scheduler.sh",
     "dashboard/app.py",
+    "dashboard/public_snapshot.py",
+    "public/app.py",
     "tests/conftest.py",
     "tests/test_guarded_strategy.py",
     "tests/test_gate.py",

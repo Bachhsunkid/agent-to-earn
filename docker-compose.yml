@@ -38,6 +38,7 @@ services:
 
   # Read-only agent activity page (http://127.0.0.1:8081, FreqUI credentials) and the
   # bot watchdog that sends urgent Telegram alerts. The bot image already ships FastAPI.
+  # It also writes the sanitized snapshot for the public page to user_data/public/.
   dashboard:
     image: freqtradeorg/freqtrade:2026.9
     container_name: agent-to-earn-dashboard
@@ -49,8 +50,10 @@ services:
       <<: *api-env
       PYTHONPATH: /workspace/agent
       PYTHONDONTWRITEBYTECODE: "1"
+      PUBLIC_SNAPSHOT: /public-data/snapshot.json
     volumes:
       - .:/workspace:ro
+      - ./user_data/public:/public-data
     ports:
       - "127.0.0.1:8081:8081"
     command: python -m uvicorn dashboard.app:app --host 0.0.0.0 --port 8081 --no-access-log
@@ -79,6 +82,37 @@ services:
       - /dev/null:/workspace/.env:ro
     command: agent/scheduler.sh
 
+  # Public status page (http://127.0.0.1:8082). No secrets, and on its own network, so it
+  # cannot reach the bot: it only serves public/ and the snapshot the dashboard writes.
+  public:
+    image: freqtradeorg/freqtrade:2026.9
+    container_name: agent-to-earn-public
+    restart: unless-stopped
+    working_dir: /srv
+    entrypoint: []
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PUBLIC_DATA: /data
+    volumes:
+      - ./public:/srv/public:ro
+      - ./user_data/public:/data:ro
+    networks: [edge]
+    ports:
+      - "127.0.0.1:8082:8082"
+    command: python -m uvicorn public.app:app --host 0.0.0.0 --port 8082 --no-access-log
+
+  # Publishes the public page through a Cloudflare quick tunnel (outbound only, no open
+  # ports). The random https://*.trycloudflare.com URL is in its logs: `make public-url`.
+  # Enabled by COMPOSE_PROFILES=public in .env.
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.3
+    container_name: agent-to-earn-tunnel
+    restart: unless-stopped
+    profiles: ["public"]
+    depends_on: [public]
+    command: tunnel --no-autoupdate --url http://public:8082
+    networks: [edge]
+
   # Same image without secrets; used for tests and helper scripts (make test, make data).
   tools:
     build:
@@ -93,3 +127,7 @@ services:
     volumes:
       - .:/workspace
       - ./user_data:/freqtrade/user_data
+
+networks:
+  # The public page and its tunnel; the bot and the secrets stay on the default network.
+  edge: {}

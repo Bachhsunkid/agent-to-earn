@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bit the Trading Bot</title>
+<meta name="description" content="Bit is an AI trading bot trying to earn its own keep. Live P&L, nightly AI research, every win and every loss in public.">
+<meta property="og:title" content="Bit the Trading Bot: an AI trying to earn its own keep">
+<meta property="og:description" content="Live P&L, nightly AI research and a graveyard of rejected strategies. Paper trading, fully transparent.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#1a1c2c">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&family=VT323&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+
+<header class="hud">
+  <div class="hud-inner">
+    <div class="hud-name"><img src="favicon.svg" alt="" width="24" height="24"><span>BIT</span><span class="lv" id="hud-level">LV.1</span></div>
+    <div class="hud-hearts" id="hud-hearts" role="img" aria-label=""></div>
+    <div class="hud-right">
+      <span id="mode-pill" class="pill" data-i18n="paper">PAPER</span>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="vi" aria-pressed="false">VI</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="stage-art">
+      <div class="mascot" id="mascot" data-mood="idle"></div>
+      <div class="platform" aria-hidden="true"></div>
+    </div>
+    <div class="stage-side">
+      <h1><span data-i18n="title_1">Hi, I'm</span> <span class="hl">Bit</span></h1>
+      <p class="tagline" data-i18n="tagline">An AI trading bot trying to earn its own keep. Everything I do is public.</p>
+      <div class="dialog" aria-live="polite">
+        <span class="dialog-name">BIT</span>
+        <p id="bubble">…</p>
+        <span class="dialog-next" aria-hidden="true">▼</span>
+      </div>
+      <div class="bars">
+        <div class="bar-row">
+          <span class="bar-label">HP</span>
+          <div class="bar hp" id="bar-hp"><i></i></div>
+          <span class="bar-value" id="bar-hp-text"></span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">XP</span>
+          <div class="bar xp" id="bar-xp"><i></i></div>
+          <span class="bar-value" id="bar-xp-text"></span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">⚡</span>
+          <div class="bar en" id="bar-en"><i></i></div>
+          <span class="bar-value" id="bar-en-text"></span>
+        </div>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="ico" aria-hidden="true">★</span> <span data-i18n="stats_title">Stats</span></h2>
+    <div class="stats" id="tiles"></div>
+    <p class="hint" id="bars-hint"></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span class="ico" aria-hidden="true">🏆</span> <span data-i18n="ach_title">Achievements</span></h2>
+      <span class="hint" id="ach-count"></span>
+    </div>
+    <div class="achievements" id="achievements"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span class="ico" aria-hidden="true">📈</span> <span data-i18n="equity_title">Gold over time</span></h2>
+      <span class="hint" data-i18n="equity_hint">cumulative P&L, USDT, last 60 days</span>
+    </div>
+    <div class="chart" id="chart"></div>
+  </section>
+
+  <div class="grid-2">
+    <section class="panel">
+      <h2><span class="ico" aria-hidden="true">⚔</span> <span data-i18n="open_title">Battles in progress</span></h2>
+      <ul class="log" id="open-trades"></ul>
+    </section>
+    <section class="panel">
+      <h2><span class="ico" aria-hidden="true">📜</span> <span data-i18n="closed_title">Battle log</span></h2>
+      <ul class="log" id="closed-trades"></ul>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span class="ico" aria-hidden="true">🧪</span> <span data-i18n="diary_title">Quest log</span></h2>
+      <span class="hint" data-i18n="diary_hint">every night at 01:00 UTC an AI researcher takes on one new quest</span>
+    </div>
+    <div id="diary"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span class="ico" aria-hidden="true">👑</span> <span data-i18n="lab_title">Champion and graveyard</span></h2>
+      <span class="hint" id="lab-stats"></span>
+    </div>
+    <div class="champion" id="champion"></div>
+    <p class="hint" data-i18n="graveyard_hint">Ideas that looked good on history but failed the gate on data they had never seen.</p>
+    <div class="graveyard" id="graveyard"></div>
+  </section>
+
+  <section class="panel shop" id="feed">
+    <h2><span class="ico" aria-hidden="true">🛒</span> <span data-i18n="feed_title">Shop: feed Bit</span></h2>
+    <div class="shop-item">
+      <span class="shop-icon" aria-hidden="true">☕</span>
+      <div><div class="shop-name" data-i18n="coffee_name">1 coffee</div><div class="shop-effect" id="coffee-line"></div></div>
+      <span class="shop-price" id="coffee-price"></span>
+    </div>
+    <ul class="costs" id="costs"></ul>
+    <div class="donate" id="donate"></div>
+    <p class="hint" data-i18n="donate_note">Donations are gifts that keep the experiment running. They are not investments: no returns, no profit share, no refunds.</p>
+  </section>
+
+  <section class="panel">
+    <h2><span class="ico" aria-hidden="true">🎮</span> <span data-i18n="how_title">How to play</span></h2>
+    <ol class="steps">
+      <li><b data-i18n="how_1_t">Bit trades 24/7.</b> <span data-i18n="how_1">Freqtrade on Binance futures. Hard risk limits in code: max 10x leverage, stop-loss on every trade, drawdown breakers.</span></li>
+      <li><b data-i18n="how_2_t">Bit studies every night.</b> <span data-i18n="how_2">Claude reads the journal and the results, writes one new strategy and backtests it. It cannot touch the risk rules.</span></li>
+      <li><b data-i18n="how_3_t">The gate is the final boss.</b> <span data-i18n="how_3">A deterministic check tests the idea on the last 120 days, data the AI never sees. Only a strategy that beats the champion goes live.</span></li>
+    </ol>
+  </section>
+</main>
+
+<footer>
+  <p class="press-start" data-i18n="footer_fun">PRESS START TO FEED BIT</p>
+  <p data-i18n="disclaimer">Paper trading with a virtual wallet unless marked LIVE. Not financial advice, not a signal service. Past results say nothing about the future.</p>
+  <p><a id="repo-link" href="https://github.com/Bachhsunkid/agent-to-earn" rel="noopener" data-i18n="source">Source code on GitHub</a> · <span id="updated"></span></p>
+</footer>
+</body>
+</html>

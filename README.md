@@ -12,6 +12,8 @@ Everything runs in Docker containers configured by one `.env` file:
 | `freqtrade` | The trading bot and FreqUI (`127.0.0.1:8080`). Dry-run unless `DRY_RUN=false`. |
 | `dashboard` | Read-only agent activity page (`127.0.0.1:8081`) and the bot watchdog. |
 | `research` | Runs the research loop daily at `RESEARCH_AT` (UTC): Claude Code + gate. |
+| `public` | Public status page (`127.0.0.1:8082`): no secrets, sanitized snapshot only. |
+| `cloudflared` | Publishes the public page through a Cloudflare tunnel (`COMPOSE_PROFILES=public`). |
 | `tools` | Same image without secrets, for tests and helper scripts (profile `tools`). |
 
 ## Run it (VM or local)
@@ -46,6 +48,22 @@ Both pages log in with `API_USERNAME` / `API_PASSWORD`:
 
 On the VM keep both ports private: `ssh -L 8080:127.0.0.1:8080 -L 8081:127.0.0.1:8081 <vm>`.
 
+## Public status page
+
+A playful page for everyone else: Bit the mascot (its mood follows the bot), P&L and
+trades, the research diary, the strategy graveyard, running costs and donation addresses,
+in English and Vietnamese. Design and safety rules: [ADR-0002](docs/adr/0002-public-status-page.md).
+
+- The dashboard writes a whitelisted snapshot to `user_data/public/snapshot.json` every
+  minute; the `public` container serves it with `public/static/`. It never publishes
+  out-of-sample gate results, logs or errors.
+- `cp public/site.example.json public/site.json` and fill in start/end dates, monthly
+  costs and donation details (empty entries are hidden). QR images go in
+  `public/static/qr/` and are referenced as `qr/<file>.png`. Both are gitignored.
+- With `COMPOSE_PROFILES=public` in `.env`, `cloudflared` publishes the page through a
+  Cloudflare quick tunnel; `make public-url` prints the URL. It changes when the tunnel
+  restarts; switch to a named tunnel once you have a domain.
+
 Telegram is for urgent alerts only: bot down or not RUNNING for 3 minutes (watchdog in the
 dashboard container) and recovery, Freqtrade warnings/exceptions, liquidations, emergency
 exits, global drawdown breakers, a newly promoted strategy, tampered guardrails, and a
@@ -67,6 +85,7 @@ The Makefile holds optional shortcuts:
 | Command | What it does |
 | --- | --- |
 | `make logs` | Follow the logs of all services |
+| `make public-url` | Print the public page URL (quick tunnel) |
 | `make soak` | Stability over the last 24h: heartbeat uptime >= 95%, no errors |
 | `make loop` | Run one research loop now (data refresh, Claude, gate) |
 | `make backtest STRATEGY=Name` | In-sample backtest (latest 120 days are held out) |
@@ -102,7 +121,8 @@ user_data/strategies/guarded_strategy.py   risk guardrails
 user_data/strategies/live/         the strategy the bot runs
 user_data/strategies/candidates/   agent-written candidates
 agent/                             research loop, scheduler, gate, backtest wrapper, alerts
-dashboard/                         activity page and watchdog
+dashboard/                         activity page, watchdog, public snapshot writer
+public/                            public status page (app, static files, site config)
 tests/                             guardrail, strategy, gate, dashboard and tooling tests
 ```
 
