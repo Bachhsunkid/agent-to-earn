@@ -7,11 +7,13 @@ agent has network access and must not learn the held-out results from the public
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 VERSION = 1
 CRITERIA_CHECKS = ("in_sample", "out_of_sample")
+DONATION_ITEMS = 50
+THANKS_FOR = timedelta(hours=24)  # the mascot says thanks this long after a donation
 
 
 def _trade_side(t: dict) -> str:
@@ -98,10 +100,12 @@ def research_section(journal: list[dict], runs: list[dict]) -> dict:
     }
 
 
-def mood(bot: dict, research: dict, today: str) -> str:
+def mood(bot: dict, research: dict, today: str, thanked: bool = False) -> str:
     """One word the page turns into a face and a speech bubble."""
     if not bot.get("online") or bot.get("state") != "running":
         return "down"
+    if thanked:
+        return "thankful"
     if research["running"]:
         return "researching"
     open_profit = sum(t.get("profit_usdt") or 0 for t in bot["open"])
@@ -115,21 +119,51 @@ def mood(bot: dict, research: dict, today: str) -> str:
     return "idle"
 
 
+def short_wallet(address: str | None) -> str | None:
+    return f"{address[:6]}…{address[-4:]}" if address and len(address) > 12 else address
+
+
+def donations_section(entries: list[dict]) -> dict:
+    """Name (or a shortened wallet), amount, channel and note; never the full wallet or tx."""
+    counted = [e["usd"] for e in entries if isinstance(e.get("usd"), (int, float))]
+    return {
+        "count": len(entries),
+        "total_usd": round(sum(counted), 2),
+        "items": [{"time": e.get("time"), "via": e.get("via"), "amount": e.get("amount"), "currency": e.get("currency"),
+                   "usd": e.get("usd"), "who": e.get("name") or short_wallet(e.get("from")), "note": e.get("note")}
+                  for e in entries[:DONATION_ITEMS]],
+    }
+
+
+def recent(entries: list[dict], now: datetime) -> bool:
+    for e in entries:
+        try:
+            at = datetime.fromisoformat(str(e.get("time")))
+        except ValueError:
+            continue
+        at = at if at.tzinfo else at.replace(tzinfo=UTC)
+        if timedelta(0) <= now - at <= THANKS_FOR:
+            return True
+    return False
+
+
 def build(bot_get, journal: list[dict], runs: list[dict], gates: list[dict], strategies: dict,
-          watchdog_ok: bool | None, now: datetime | None = None) -> dict:
+          watchdog_ok: bool | None, now: datetime | None = None, donations: list[dict] | None = None) -> dict:
     now = now or datetime.now(UTC)
+    donations = donations or []
     bot = bot_section(bot_get)
     research = research_section(journal, runs)
     return {
         "version": VERSION,
         "generated_at": now.isoformat(timespec="seconds"),
-        "mood": mood(bot, research, now.strftime("%Y-%m-%d")),
+        "mood": mood(bot, research, now.strftime("%Y-%m-%d"), recent(donations, now)),
         "bot": bot,
         "research": research,
         # Reports without an action are gate dry runs (promote_on_pass=False), not decisions.
         "gate": [gate_entry(r) for r in gates if r.get("action")],
         "strategies": {"live": strategies.get("live"), "retired": strategies.get("retired", [])},
         "watchdog_ok": watchdog_ok,
+        "donations": donations_section(donations),
     }
 
 

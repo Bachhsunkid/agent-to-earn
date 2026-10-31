@@ -10,7 +10,7 @@ Everything runs in Docker containers configured by one `.env` file:
 | Service | What it does |
 | --- | --- |
 | `freqtrade` | The trading bot and FreqUI (`127.0.0.1:8080`). Dry-run unless `DRY_RUN=false`. |
-| `dashboard` | Read-only agent activity page (`127.0.0.1:8081`) and the bot watchdog. |
+| `dashboard` | Read-only agent activity and finances page (`127.0.0.1:8081`), the bot watchdog, donation tracking. |
 | `research` | Runs the research loop daily at `RESEARCH_AT` (UTC): Claude Code + gate. |
 | `public` | Public status page (`127.0.0.1:8082`): no secrets, sanitized snapshot only. |
 | `cloudflared` | Publishes the public page through a Cloudflare tunnel (`COMPOSE_PROFILES=public`). |
@@ -81,6 +81,15 @@ in English and Vietnamese. Design and safety rules: [ADR-0002](docs/adr/0002-pub
 - `cp public/site.example.json public/site.json` and fill in start/end dates, monthly
   costs and donation details (empty entries are hidden). QR images go in
   `public/static/qr/` and are referenced as `qr/<file>.png`. Both are gitignored.
+- Donations: the dashboard scans the USDT wallets listed under `donate.crypto` (each with a
+  `network`: `bsc`, `eth` or `tron`) every 5 minutes through public nodes, no API keys, and
+  keeps what it finds in `user_data/finance/`. Momo and internal Binance transfers never
+  reach a chain: add them under `donors.manual`, e.g. `{"date": "2026-11-01", "via": "Momo",
+  "amount": 50000, "currency": "VND", "name": "An", "note": "Go Bit!"}` (VND uses `vnd_per_usd`). `donors.names` maps a wallet or tx to the
+  name shown in the Hall of Fame (otherwise a shortened wallet). Donations are shown next
+  to the KPI, never counted as profit. Design: [ADR-0004](docs/adr/0004-donation-tracking.md).
+- The dashboard's Finances section has the season ledger: running costs, bot P&L, the
+  profit ≥ 2× costs KPI with a linear projection, donations and net.
 - With `COMPOSE_PROFILES=public` in `.env`, `cloudflared` publishes the page through a
   Cloudflare quick tunnel; `make public-url` prints the URL. It changes when the tunnel
   restarts; switch to a named tunnel once you have a domain.

@@ -222,6 +222,12 @@ main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 0; }
 .copy { font: 14px var(--pixel); padding: 6px 10px; min-height: 34px; border: 3px solid var(--night); background: var(--yellow); color: var(--night); cursor: pointer; flex: none; box-shadow: 3px 3px 0 #000; }
 .copy:active { transform: translate(3px, 3px); box-shadow: none; }
 
+/* hall of fame */
+.donors .tag { background: var(--red); color: var(--white); }
+.donors .who { color: var(--yellow); }
+.donors .note { grid-column: 2 / -1; color: var(--white); font-size: 18px; }
+.fx-heart { color: #ef4f6e; text-shadow: 2px 2px 0 #000; }
+
 .steps { margin: 0; padding-left: 0; list-style: none; counter-reset: step; }
 .steps li { counter-increment: step; position: relative; padding-left: 52px; margin: 14px 0; }
 .steps li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 36px; height: 36px; display: grid; place-items: center;
@@ -233,7 +239,7 @@ footer { max-width: 1000px; margin: 0 auto; padding: 0 16px 48px; color: var(--m
 
 @media (prefers-reduced-motion: no-preference) {
   .mascot svg .bob { animation: bob 1.2s steps(2) infinite; }
-  .mascot[data-mood="winning"] svg .bob, .mascot[data-mood="happy"] svg .bob { animation: hop .6s steps(2) infinite; }
+  .mascot[data-mood="winning"] svg .bob, .mascot[data-mood="happy"] svg .bob, .mascot[data-mood="thankful"] svg .bob { animation: hop .6s steps(2) infinite; }
   .mascot[data-mood="nervous"] svg .bob { animation: shake .3s steps(2) infinite; }
   .mascot[data-mood="idle"] svg .bob { animation-duration: 2.4s; }
   .mascot .antenna { animation: blink 1s steps(1) infinite; }

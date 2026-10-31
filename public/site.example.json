@@ -1,5 +1,5 @@
 {
-  "//": "Copy to public/site.json (gitignored) and edit. Empty donate entries are hidden. QR images go in public/static/qr/.",
+  "//": "Copy to public/site.json (gitignored) and edit. Empty donate entries are hidden. QR images go in public/static/qr/. Crypto network: bsc, eth or tron (tracked automatically).",
   "repo": "https://github.com/Bachhsunkid/agent-to-earn",
   "started": "2026-10-29",
   "ends": "2027-01-29",
@@ -9,14 +9,20 @@
     {"name": "VM", "usd": 5}
   ],
   "coffee_usd": 2,
+  "vnd_per_usd": 26000,
   "donate": {
     "crypto": [
-      {"label": "USDT (BEP20)", "address": "", "qr": ""},
-      {"label": "USDT (TRC20)", "address": "", "qr": ""}
+      {"label": "USDT (BEP20)", "network": "bsc", "address": "", "qr": ""},
+      {"label": "USDT (TRC20)", "network": "tron", "address": "", "qr": ""},
+      {"label": "USDT (ERC20)", "network": "eth", "address": "", "qr": ""}
     ],
     "bank": [
       {"label": "Momo", "name": "", "account": "", "qr": ""},
       {"label": "Bank transfer", "bank": "", "name": "", "account": "", "qr": ""}
     ]
+  },
+  "donors": {
+    "names": {},
+    "manual": []
   }
 }

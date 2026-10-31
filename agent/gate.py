@@ -52,6 +52,8 @@ PROTECTED = [
     "agent/scheduler.sh",
     "dashboard/app.py",
     "dashboard/public_snapshot.py",
+    "dashboard/donations.py",
+    "dashboard/finance.py",
     "public/app.py",
     "tests/conftest.py",
     "tests/test_guarded_strategy.py",

@@ -2,8 +2,9 @@
 
 Runs next to FreqUI on 127.0.0.1:8081 with the same credentials as the Freqtrade API.
 It also hosts the watchdog: an urgent Telegram alert when the bot stops answering or
-leaves the RUNNING state (Freqtrade cannot report its own death), and writes the sanitized
-snapshot for the public status page when PUBLIC_SNAPSHOT is set.
+leaves the RUNNING state (Freqtrade cannot report its own death), writes the sanitized
+snapshot for the public status page when PUBLIC_SNAPSHOT is set, and tracks donations to the
+public wallets when DONATIONS_STATE is set.
 """
 
 import asyncio
@@ -24,13 +25,15 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 import common
 import notify
-from dashboard import public_snapshot
+from dashboard import donations, finance, public_snapshot
 
 logger = logging.getLogger("dashboard")
 
 FREQUI_URL = os.environ.get("FREQUI_URL", "http://127.0.0.1:8080")
 WATCHDOG_INTERVAL = int(os.environ.get("WATCHDOG_INTERVAL", "60"))
 PUBLIC_SNAPSHOT = os.environ.get("PUBLIC_SNAPSHOT")
+DONATIONS_STATE = os.environ.get("DONATIONS_STATE")
+DONATIONS_INTERVAL = int(os.environ.get("DONATIONS_INTERVAL", "300"))
 JOURNAL = common.ROOT / "agent" / "journal"
 
 
@@ -95,6 +98,10 @@ def journal_entries(limit: int = 14) -> list[dict]:
     return entries
 
 
+def donation_state() -> dict:
+    return donations.load_state(Path(DONATIONS_STATE)) if DONATIONS_STATE else donations.empty_state()
+
+
 def strategies() -> dict:
     def names(directory: Path) -> list[str]:
         return sorted(p.name for p in directory.glob("*.py")) if directory.exists() else []
@@ -156,7 +163,8 @@ async def watchdog_loop() -> None:
 def write_public_snapshot(path: Path) -> None:
     healthy = None if watchdog.last_check is None else watchdog.failures == 0
     snapshot = public_snapshot.build(bot_get, journal_entries(), loop_runs(limit=400), gate_reports(limit=50),
-                                     strategies(), healthy)
+                                     strategies(), healthy,
+                                     donations=donations.ledger(finance.load_site(), donation_state()))
     public_snapshot.write(snapshot, path)
 
 
@@ -169,11 +177,24 @@ async def snapshot_loop(path: Path) -> None:
         await asyncio.sleep(WATCHDOG_INTERVAL)
 
 
+async def donations_loop(path: Path) -> None:
+    while True:
+        try:
+            errors = await asyncio.to_thread(donations.sync, finance.load_site(), path)
+            for error in errors:
+                logger.warning("donation sync: %s", error)
+        except OSError as exc:
+            logger.warning("donation state not written: %s", exc)
+        await asyncio.sleep(DONATIONS_INTERVAL)
+
+
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI):
     tasks = [asyncio.create_task(watchdog_loop())]
     if PUBLIC_SNAPSHOT:
         tasks.append(asyncio.create_task(snapshot_loop(Path(PUBLIC_SNAPSHOT))))
+    if DONATIONS_STATE:
+        tasks.append(asyncio.create_task(donations_loop(Path(DONATIONS_STATE))))
     yield
     for task in tasks:
         task.cancel()
@@ -251,6 +272,51 @@ def render_bot(bot: dict) -> str:
 </section>"""
 
 
+def usd(value) -> str:
+    return "–" if value is None else f"{'−' if value < 0 else ''}${abs(value):,.2f}"
+
+
+def render_finances(site: dict, bot: dict, state: dict, now: datetime) -> str:
+    entries = donations.ledger(site, state)
+    total = sum(e["usd"] for e in entries if isinstance(e["usd"], (int, float)))
+    profit = bot["profit"].get("profit_all_coin") if bot["reachable"] else None
+    eco = finance.economy(site, profit, total, now)
+    season = f"day {int(eco['days']) + 1} of {eco['season_days']}" if eco["season_days"] else "no season dates in site.json"
+    progress = "–" if eco["progress"] is None else f"{eco['progress']:.0%}"
+    stats = [
+        ("Running costs", f"{usd(eco['monthly'])}/month · {usd(eco['spent'])} so far ({season})"),
+        ("Bot P&L (incl. open)", f"{usd(eco['profit'])}" + ("" if bot["reachable"] else " (bot unreachable)")
+         + (" · paper" if bot.get("dry_run") else "")),
+        (f"KPI: profit ≥ {eco['multiple']:g}× costs", f"{usd(eco['profit'])} of {usd(eco['goal'])} ({progress})"),
+        ("Donations (not profit)", f"{usd(total)} from {len(entries)}" + (
+            f" · cover {eco['donation_cover']:.0%} of costs" if eco["donation_cover"] is not None else "")),
+        ("Net (P&L + donations − costs)", usd(eco["net"])),
+    ]
+    if eco["projected"]:
+        p = eco["projected"]
+        verdict = badge("on track", "good") if p["profit"] >= p["goal"] else badge("behind", "warn")
+        stats.append(("Season end at this pace", f"{usd(p['profit'])} vs goal {usd(p['goal'])} {verdict}"))
+    tiles = "".join(f'<div class="tile"><div class="label">{esc(k)}</div><div class="value">{v}</div></div>'
+                    for k, v in stats)
+    rows = []
+    for e in entries:
+        link = donations.explorer_url(e)
+        amount = f"{num(e['amount'], 0 if e['currency'] == 'VND' else 2)} {esc(e['currency'])}" if isinstance(e["amount"], (int, float)) else "–"
+        rows.append([esc(e["time"][:16].replace("T", " ")), esc(e["via"]), amount, usd(e["usd"]),
+                     esc(e["name"] or "–"), f"<code>{esc(e['from'])}</code>" if e["from"] else "manual",
+                     f'<a href="{esc(link)}" rel="noopener">tx</a>' if link else esc(e["note"] or "")])
+    problems = [badge(err, "bad") for err in state.get("errors", [])]
+    problems += [badge(f"gap skipped on {g['wallet']}: blocks {g['from']}–{g['to']} (check the explorer)", "warn")
+                 for g in state.get("gaps", [])]
+    synced = ", ".join(f"{k.split(':')[0]} {esc(v[11:16])} UTC" for k, v in state.get("synced", {}).items())
+    return f"""<section><h2>Finances</h2>
+<div class="tiles">{tiles}</div>
+<h3>Donations</h3>{table(["Time (UTC)", "Via", "Amount", "USD", "Name", "From", "Tx / note"], rows, "No donations yet.")}
+<p class="muted">Last chain sync: {synced or "not yet"}. Momo and internal Binance transfers: add them under
+<code>donors.manual</code> in public/site.json; name a wallet under <code>donors.names</code>.</p>
+{"<p>" + " ".join(problems) + "</p>" if problems else ""}</section>"""
+
+
 def render_research(journal: list[dict], runs: list[dict]) -> str:
     run_by_date = {}
     for run in runs:
@@ -326,9 +392,12 @@ pre{white-space:pre-wrap;font-size:13px;margin:4px 0}dl{display:grid;grid-templa
 
 
 def render_page() -> str:
-    now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+    moment = datetime.now(UTC)
+    now = moment.strftime("%Y-%m-%d %H:%M UTC")
+    bot = bot_status()
     body = "".join([
-        render_bot(bot_status()),
+        render_bot(bot),
+        render_finances(finance.load_site(), bot, donation_state(), moment),
         render_research(journal_entries(), loop_runs()),
         render_gate(gate_reports()),
         render_strategies(strategies()),

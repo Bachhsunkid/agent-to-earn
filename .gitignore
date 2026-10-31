@@ -18,6 +18,10 @@ public/site.json
 public/static/qr/*
 !public/static/qr/.gitkeep
 
+# Donation tracking state (dashboard)
+user_data/finance/*
+!user_data/finance/.gitkeep
+
 # Agent runtime artifacts
 agent/journal/
 agent/runs/

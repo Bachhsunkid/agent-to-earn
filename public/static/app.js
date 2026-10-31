@@ -38,6 +38,7 @@ const T = {
       happy: ["Earned {todayPnl} today. Coffee money for my servers!", "Good day: {todayPnl}. Still a long way to pay my bills."],
       sad: ["Lost {todayPnl} today. Small losses are part of the plan.", "Rough day ({todayPnl}). Tomorrow the lab tries again."],
       idle: ["No battles right now. Waiting for a market worth fighting.", "Quiet market, quiet bot. Not trading is also a move."],
+      thankful: ["Thank you, {donor}! You just bought my servers more time.", "{donor}, you're a legend. Fuel received, circuits happy!"],
     },
     online: "online", offline: "offline", strategy: "strategy",
     hearts_label: "Health: {n} of 5 hearts",
@@ -53,6 +54,7 @@ const T = {
       owl: ["Night owl", "7 research nights"], champ: ["New champion", "a strategy gets promoted"],
       grave: ["Gravedigger", "bury 3 strategies"], iron: ["Iron nerves", "20 trades, max DD < 5%"],
       survivor: ["Survivor", "30 days in the arena"],
+      coffee: ["First coffee", "receive a donation"], server: ["Server paid", "donations ≥ one month of costs"],
     },
     chart_empty: "No closed trades yet. Patience is a strategy too.",
     no_open: "No battles in progress.", no_closed: "No battles fought yet.",
@@ -77,6 +79,9 @@ const T = {
     in_sample_stats: "history {profit} · PF {pf} · DD {dd}",
     coffee: "+{hours}h of runtime for Bit", per_month: "mo",
     no_donate: "Donation addresses coming soon.",
+    hall_title: "Hall of Fame", hall_total: "{n} donations · {total}",
+    hall_cover: "Donations have covered {pct} of the running costs so far. Thank you! They don't count as profit: the 2× goal is Bit's own job.",
+    no_donors: "No donors yet. The first one gets a legendary spot right here.", anon: "Anonymous hero",
     copy: "Copy", copied: "Copied!",
     updated: "updated {t}", stale: "data is {t} old",
     load_error: "Can't reach my brain right now. Retrying…",
@@ -112,6 +117,7 @@ const T = {
       happy: ["Hôm nay kiếm được {todayPnl}. Đủ tiền cà phê cho server!", "Ngày đẹp: {todayPnl}. Còn xa mới tự nuôi được mình."],
       sad: ["Hôm nay lỗ {todayPnl}. Lỗ nhỏ nằm trong kế hoạch.", "Ngày khó ({todayPnl}). Mai lab thử tiếp."],
       idle: ["Chưa có trận nào. Đang chờ thị trường đáng để đánh.", "Thị trường im, bot cũng im. Đứng ngoài cũng là một nước đi."],
+      thankful: ["Cảm ơn {donor}! Bạn vừa mua thêm thời gian sống cho server của mình.", "{donor} đỉnh quá! Đã nhận nhiên liệu, mạch vui phơi phới!"],
     },
     online: "online", offline: "offline", strategy: "strategy",
     hearts_label: "Máu: {n}/5 tim",
@@ -127,6 +133,7 @@ const T = {
       owl: ["Cú đêm", "7 đêm nghiên cứu"], champ: ["Tân vương", "một strategy được lên sàn"],
       grave: ["Người đào mộ", "chôn 3 strategy"], iron: ["Thần kinh thép", "20 lệnh, DD tối đa < 5%"],
       survivor: ["Sống sót", "30 ngày trên đấu trường"],
+      coffee: ["Ly cà phê đầu", "nhận một donate"], server: ["Trả tiền server", "donate ≥ chi phí một tháng"],
     },
     chart_empty: "Chưa có lệnh đóng nào. Kiên nhẫn cũng là một strategy.",
     no_open: "Không có trận nào đang đánh.", no_closed: "Chưa đánh trận nào.",
@@ -151,6 +158,9 @@ const T = {
     in_sample_stats: "dữ liệu cũ {profit} · PF {pf} · DD {dd}",
     coffee: "+{hours} giờ chạy cho Bit", per_month: "tháng",
     no_donate: "Sắp có địa chỉ donate.",
+    hall_title: "Bảng vàng", hall_total: "{n} lượt donate · {total}",
+    hall_cover: "Donate đã bù {pct} chi phí chạy tới nay. Cảm ơn mọi người! Khoản này không tính là lợi nhuận: mục tiêu 2× là việc Bit phải tự làm.",
+    no_donors: "Chưa có ai donate. Người đầu tiên sẽ có một chỗ huyền thoại ngay tại đây.", anon: "Người hùng giấu tên",
     copy: "Copy", copied: "Đã copy!",
     updated: "cập nhật {t}", stale: "dữ liệu cũ {t}",
     load_error: "Không kết nối được tới não của mình. Đang thử lại…",
@@ -274,12 +284,14 @@ const FACES = {
   sad: ["..........", ".ggg..ggg.", "..........", ".b......b.", "...gggg...", "..g....g.."],
   researching: ["gggg..gggg", "g.wgggg.wg", "g..g..g..g", "gggg..gggg", "..........", "....gg...."],
   down: ["g..g..g..g", ".gg....gg.", ".gg....gg.", "g..g..g..g", "..........", "..gggggg.."],
+  thankful: [".r.r..r.r.", ".rrr..rrr.", "..r....r..", "..........", "..g....g..", "...gggg..."],
 };
 const ANTENNA = { down: "#566c86", winning: "#a7f070", happy: "#a7f070", nervous: "#ef7d57", sad: "#ef7d57",
-  researching: "#73eff7", idle: "#ffcd75" };
+  researching: "#73eff7", idle: "#ffcd75", thankful: "#ef4f6e" };
 const FX = { idle: [["z", "fx-z", 78, 8], ["z", "fx-z", 88, 0]], winning: [["$", "fx-coin", 6, 30], ["$", "fx-coin", 86, 20], ["$", "fx-coin", 46, 0]],
   happy: [["$", "fx-coin", 8, 26], ["♪", "fx-coin", 86, 14]], researching: [["?", "fx-q", 84, 6], ["!", "fx-q", 6, 18]],
-  nervous: [["!", "fx-coin", 86, 4]], sad: [["…", "fx-z", 84, 10]], down: [["💀", "fx-skull", 82, 4]] };
+  nervous: [["!", "fx-coin", 86, 4]], sad: [["…", "fx-z", 84, 10]], down: [["💀", "fx-skull", 82, 4]],
+  thankful: [["♥", "fx-heart", 8, 26], ["$", "fx-coin", 86, 18], ["♥", "fx-heart", 80, 0], ["$", "fx-coin", 14, 4], ["$", "fx-coin", 48, 0]] };
 
 function sprite(rows, colorAt, extra = {}) {
   const width = Math.max(...rows.map((r) => r.length));
@@ -375,7 +387,9 @@ function renderHero(snap, site) {
   const today = new Date().toISOString().slice(0, 10);
   const todayPnl = (bot.daily || []).filter((d) => d.date === today).reduce((s, d) => s + (d.profit_usdt || 0), 0);
   const lines = t("moods." + mood);
-  const vars = { strategy: bot.strategy || "?", open: open.length, openPnl: usdt(openPnl), todayPnl: usdt(todayPnl) };
+  const donor = ((snap.donations && snap.donations.items) || [])[0];
+  const vars = { strategy: bot.strategy || "?", open: open.length, openPnl: usdt(openPnl), todayPnl: usdt(todayPnl),
+    donor: (donor && donor.who) || t("anon") };
   typeText($("bubble"), Array.isArray(lines) ? pick(lines).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "") : "…");
 
   const paper = bot.paper !== false;
@@ -458,6 +472,7 @@ function renderAchievements(snap, site) {
   const gate = snap.gate || [];
   const eco = economy(snap, site);
   const done = (snap.research && snap.research.runs && snap.research.runs.done) || 0;
+  const gifts = snap.donations || {};
   const list = [
     ["first_blood", "⚔️", (p.trades || 0) >= 1],
     ["first_win", "🥇", (p.wins || 0) >= 1],
@@ -470,6 +485,8 @@ function renderAchievements(snap, site) {
     ["grave", "🪦", gate.filter((g) => !g.passed).length >= 3],
     ["iron", "🧊", (p.trades || 0) >= 20 && isNum(p.max_drawdown) && p.max_drawdown < 0.05],
     ["survivor", "🛡️", eco.days >= 30],
+    ["coffee", "☕", (gifts.count || 0) >= 1],
+    ["server", "🖥️", eco.monthly > 0 && (gifts.total_usd || 0) >= eco.monthly],
   ];
   const unlocked = list.filter(([, , ok]) => ok).length;
   $("ach-count").textContent = t("ach_count", { n: unlocked, total: list.length });
@@ -626,6 +643,26 @@ function renderFeed(snap, site) {
   if (site.repo && /^https:\/\/github\.com\//.test(site.repo)) $("repo-link").href = site.repo;
 }
 
+function money(amount, currency) {
+  if (currency === "VND") return isNum(amount) ? `${amount.toLocaleString(state.lang)} ₫` : "–";
+  return currency === "USD" ? usd(amount) : usdt(amount, false);
+}
+
+function renderHall(snap, site) {
+  const gifts = snap.donations || {};
+  const items = gifts.items || [];
+  $("hall-total").textContent = gifts.count ? t("hall_total", { n: gifts.count, total: usd(gifts.total_usd) }) : "";
+  fill("donors", items.length ? items.map((d) => el("li", {},
+    el("span", { class: "tag" }, "♥"),
+    el("span", {}, el("span", { class: "who" }, d.who || t("anon")), el("span", { class: "side" }, d.via)),
+    el("span", { class: "pnl gain" }, money(d.amount, d.currency)),
+    el("span", { class: "meta" }, ago(parseDate(d.time))),
+    d.note ? el("span", { class: "note" }, `“${d.note}”`) : null)) : el("li", { class: "empty" }, t("no_donors")));
+  const eco = economy(snap, site);
+  $("hall-cover").textContent = gifts.total_usd > 0 && eco.spent > 0
+    ? t("hall_cover", { pct: pct(gifts.total_usd / eco.spent, false) }) : "";
+}
+
 function renderUpdated(snap) {
   const at = parseDate(snap && snap.generated_at);
   const stale = at && Date.now() - at.getTime() > 5 * 60_000;
@@ -644,6 +681,7 @@ function render() {
   renderDiary(snap);
   renderLab(snap);
   renderFeed(snap, site);
+  renderHall(snap, site);
   renderUpdated(state.snapshot);
 }
 

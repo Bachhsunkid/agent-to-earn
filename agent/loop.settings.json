@@ -35,6 +35,7 @@
       "Edit(dashboard/**)",
       "Edit(public/**)",
       "Edit(user_data/public/**)",
+      "Edit(user_data/finance/**)",
       "Edit(Makefile)",
       "Edit(pytest.ini)",
       "WebFetch",

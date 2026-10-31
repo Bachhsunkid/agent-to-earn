@@ -38,7 +38,9 @@ services:
 
   # Read-only agent activity page (http://127.0.0.1:8081, FreqUI credentials) and the
   # bot watchdog that sends urgent Telegram alerts. The bot image already ships FastAPI.
-  # It also writes the sanitized snapshot for the public page to user_data/public/.
+  # It also writes the sanitized snapshot for the public page to user_data/public/ and tracks
+  # donations to the public wallets (public JSON-RPC nodes and TronGrid, no API keys) in
+  # user_data/finance/.
   dashboard:
     image: freqtradeorg/freqtrade:2026.9
     container_name: agent-to-earn-dashboard
@@ -51,9 +53,11 @@ services:
       PYTHONPATH: /workspace/agent
       PYTHONDONTWRITEBYTECODE: "1"
       PUBLIC_SNAPSHOT: /public-data/snapshot.json
+      DONATIONS_STATE: /finance-data/donations.json
     volumes:
       - .:/workspace:ro
       - ./user_data/public:/public-data
+      - ./user_data/finance:/finance-data
     ports:
       - "127.0.0.1:8081:8081"
     command: python -m uvicorn dashboard.app:app --host 0.0.0.0 --port 8081 --no-access-log
