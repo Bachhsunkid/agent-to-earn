@@ -1,0 +1,77 @@
+# Tests on every push and pull request; pushes to main that pass are deployed to the VM.
+# Deploy secrets (VM_HOST, VM_PORT, VM_SSH_KEY, VM_KNOWN_HOSTS) come from
+# scripts/setup_deploy_user.sh. Pull requests from forks never receive secrets.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Validate docker-compose.yml
+        env:
+          API_PASSWORD: ci
+          API_JWT_SECRET: ci
+          API_WS_TOKEN: ci
+          TELEGRAM_TOKEN: ci
+          TELEGRAM_CHAT_ID: ci
+        run: docker compose config --quiet
+
+      - name: Build the tools image
+        run: docker build --file docker/Dockerfile.tools --tag agent-to-earn-tools:ci docker
+
+      # Same image and mounts as `make test`. The container runs as uid 1000 (as on the VM)
+      # and some tests write under user_data/, so hand the checkout to that uid for the run.
+      - name: Test
+        run: |
+          sudo chown -R 1000:1000 "$GITHUB_WORKSPACE"
+          docker run --rm \
+            -v "$PWD:/workspace" -v "$PWD/user_data:/freqtrade/user_data" \
+            -w /workspace -e PYTHONPATH=/workspace/user_data/strategies -e PYTHONDONTWRITEBYTECODE=1 \
+            --entrypoint pytest agent-to-earn-tools:ci
+
+      - name: Give the checkout back to the runner
+        if: always()
+        run: sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    # One deploy at a time; a newer push waits instead of cancelling a deploy half-way.
+    concurrency:
+      group: deploy-vm
+      cancel-in-progress: false
+    steps:
+      - name: Deploy this commit to the VM
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_PORT: ${{ secrets.VM_PORT }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_KNOWN_HOSTS: ${{ secrets.VM_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$VM_SSH_KEY" ] || [ -z "$VM_HOST" ] || [ -z "$VM_KNOWN_HOSTS" ]; then
+            echo "::notice::Deploy skipped: VM_* secrets are not set (see scripts/setup_deploy_user.sh)."
+            exit 0
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VM_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The key's forced command runs the deploy script with this argument and nothing else.
+          ssh -i ~/.ssh/deploy_key -p "${VM_PORT:-22}" \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            "deploy@$VM_HOST" "$GITHUB_SHA"

@@ -48,6 +48,27 @@ Both pages log in with `API_USERNAME` / `API_PASSWORD`:
 
 On the VM keep both ports private: `ssh -L 8080:127.0.0.1:8080 -L 8081:127.0.0.1:8081 <vm>`.
 
+## Continuous deployment
+
+`.github/workflows/ci.yml` runs the tests on every push and pull request; pushes to `main`
+that pass are deployed to the VM over SSH with a key that can only run the deploy script.
+Design and safety rules: [ADR-0003](docs/adr/0003-github-actions-deploy.md).
+
+One-time setup, as root on the VM from the repo root:
+
+```bash
+sh scripts/setup_deploy_user.sh <vm public IP> <ssh port>
+```
+
+It creates the restricted `deploy` user and prints four values. Add them as repository
+secrets (Settings > Secrets and variables > Actions): `VM_HOST`, `VM_PORT`, `VM_SSH_KEY`,
+`VM_KNOWN_HOSTS`. Until they exist the deploy step is skipped. Re-run the script after
+changing `scripts/vm_deploy.sh` (it installs a root-owned copy; `--new-key` rotates the key).
+
+A deploy refuses to run, and the job fails with the reason, when the research loop is
+running or the VM checkout has uncommitted changes to tracked files (a gate promotion:
+commit it from the VM first). It restarts only the services whose mounted code changed.
+
 ## Public status page
 
 A playful page for everyone else: Bit the mascot (its mood follows the bot), P&L and
@@ -124,6 +145,7 @@ agent/                             research loop, scheduler, gate, backtest wrap
 dashboard/                         activity page, watchdog, public snapshot writer
 public/                            public status page (app, static files, site config)
 tests/                             guardrail, strategy, gate, dashboard and tooling tests
+.github/workflows/ci.yml           tests, then deploy to the VM (scripts/vm_deploy.sh)
 ```
 
 ## Changing guardrails
