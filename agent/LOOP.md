@@ -36,7 +36,9 @@ How to run commands (you start in the repo root):
   - `stop_dist`: stop distance as a fraction of price (e.g. `2 * atr / close`).
   - `risk_mult`: 0..1 regime multiplier. 0 = stand aside, 1 = full risk. Push in active,
     trending markets; stand aside or size down in dull, choppy ones.
-- `timeframe` in {1h, 2h, 4h}. Allowed imports: talib, talib.abstract, numpy, pandas,
+- `timeframe` in {1h, 2h, 4h}. Candles for all three (and funding rates) are downloaded
+  from 2025-08-01 before every run, so every timeframe can be backtested. Check the data
+  yourself instead of trusting older journal notes. Allowed imports: talib, talib.abstract, numpy, pandas,
   technical, freqtrade.strategy, freqtrade.vendor.qtpylib.indicators, datetime, math,
   functools, typing, guarded_strategy. Module level: imports, constants, one class.
 - No lookahead: no `shift(-n)`, no centered windows, no statistics over the whole series.

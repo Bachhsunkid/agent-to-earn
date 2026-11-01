@@ -33,8 +33,10 @@ def test_errors_and_old_lines():
     old = beat(NOW - timedelta(days=3))
     err = f"{NOW - timedelta(minutes=5):%Y-%m-%d %H:%M:%S},1 - freqtrade.exchange - ERROR - boom"
     warn = f"{NOW - timedelta(minutes=4):%Y-%m-%d %H:%M:%S},1 - freqtrade.exchange - WARNING - meh"
-    report = analyze([old, "garbage", *run_for(60), err, warn], NOW, hours=24)
+    telegram = f"{NOW - timedelta(minutes=3):%Y-%m-%d %H:%M:%S},1 - telegram.ext.Updater - ERROR - Exception happened while polling for updates."
+    report = analyze([old, "garbage", *run_for(60), err, warn, telegram], NOW, hours=24)
     assert report["errors"] == 1 and report["warnings"] == 1 and report["last_errors"][0].endswith("boom")
+    assert report["telegram_errors"] == 1
 
 
 def test_empty_log_is_down():

@@ -2,7 +2,8 @@
 
 Uptime counts the time covered by RUNNING heartbeats; any gap longer than twice the
 heartbeat interval is downtime. Exit code 0 means uptime >= --min-uptime and errors
-<= --max-errors.
+<= --max-errors. Errors of the Telegram client (Telegram API outages such as "Bad Gateway")
+are counted apart: they delay alerts but say nothing about the bot itself.
 
 Usage: python3 scripts/soak_check.py [--hours 24] [--min-uptime 0.95] [--max-errors 0]
 """
@@ -20,7 +21,7 @@ HEARTBEAT_INTERVAL = 60
 
 def analyze(lines, now: datetime, hours: float, interval: int = HEARTBEAT_INTERVAL) -> dict:
     window_start = now - timedelta(hours=hours)
-    first_seen, beats, errors, warnings = None, [], [], 0
+    first_seen, beats, errors, warnings, telegram_errors = None, [], [], 0, 0
     for line in lines:
         m = LINE.match(line)
         if not m:
@@ -29,7 +30,9 @@ def analyze(lines, now: datetime, hours: float, interval: int = HEARTBEAT_INTERV
         if ts < window_start:
             continue
         first_seen = first_seen or ts
-        if m[3] == "ERROR":
+        if m[3] == "ERROR" and m[2].startswith("telegram."):
+            telegram_errors += 1
+        elif m[3] == "ERROR":
             errors.append(line.strip()[:200])
         elif m[3] == "WARNING":
             warnings += 1
@@ -45,7 +48,8 @@ def analyze(lines, now: datetime, hours: float, interval: int = HEARTBEAT_INTERV
     return {"from": start.isoformat(sep=" "), "to": now.isoformat(sep=" "),
             "hours": round(span / 3600, 2), "heartbeats": len(beats),
             "uptime": round(max(0.0, 1 - downtime / span), 4),
-            "errors": len(errors), "warnings": warnings, "last_errors": errors[-5:]}
+            "errors": len(errors), "warnings": warnings, "telegram_errors": telegram_errors,
+            "last_errors": errors[-5:]}
 
 
 def main(argv: list[str]) -> int:

@@ -15,7 +15,7 @@
   "agent/notify.py": "1a87eb927ee103fd7f8f7a679ca979885519be0f09a7fa77142f83f48af1a7ae",
   "agent/perf_snapshot.py": "5a977176749822b905519a4d27d1afef7faea7c5e605aa02e515e0f1bca1b6ab",
   "agent/readiness.py": "d14eaffb108df962c09eb15c43a2e6aa2bc11b7bb104db777efacdf455b886b1",
-  "agent/LOOP.md": "6c3129922a69fc86650a46560467a1cfdcd6019afedc34470ab4271fb31b9b9b",
+  "agent/LOOP.md": "6d787f297794b4bd63be5702f8dc665de96abd250708aade8de3b3409e17f1b1",
   "agent/loop.settings.json": "120453ac34e6dbe5c3e36fa5fe3f8b47a888803001bf7b935eef13068c91d0b6",
   "agent/run_loop.sh": "f7fc3b02023bd8284d7ccb8613cb08a08bfca6cd0f00d6e7bb06fb66a44b75c4",
   "agent/scheduler.sh": "a773b8ec3808e691080676a9f1d25d5c7b6eefb72f5beb338e54d3e4fb7ba523",
