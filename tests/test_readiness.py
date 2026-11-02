@@ -54,6 +54,13 @@ def test_wait_for_more_days_and_trades():
     assert evaluate([], [])["comparison"] is None
 
 
+def test_small_sample_misses_wait_instead_of_failing():
+    report = evaluate([api_trade(470, profit=-1)], [])
+    statuses = {c["name"]: c["status"] for c in report["checks"]}
+    assert report["verdict"] == "wait"
+    assert statuses["agreement"] == statuses["profitable"] == "wait" and statuses["profit_vs_backtest"] == "pass"
+
+
 @pytest.mark.parametrize("trades, backtest, uptime, failed", [
     ([api_trade(h * 20) for h in range(22)], [bt_trade(h * 20 + 5) for h in range(22)], UPTIME, "agreement"),
     ([api_trade(h * 20, profit=0.2) for h in range(22)], [bt_trade(h * 20) for h in range(22)], UPTIME,
@@ -94,12 +101,20 @@ def test_backtest_trades_runs_freqtrade_and_filters_window(tmp_path, monkeypatch
     calls = []
     monkeypatch.setattr(common, "run_tools", lambda args: calls.append(args) or subprocess.CompletedProcess(args, 0, "", ""))
     frame = pd.DataFrame([
-        {"pair": "BTC/USDT:USDT", "is_short": False, "profit_abs": 2.0, "open_date": pd.Timestamp(START + timedelta(hours=1))},
-        {"pair": "BTC/USDT:USDT", "is_short": True, "profit_abs": 9.0, "open_date": pd.Timestamp(START - timedelta(hours=3))},
+        # Paper fills seconds after the candle: the backtest entry on that candle still counts.
+        {"pair": "ETH/USDT:USDT", "is_short": False, "profit_abs": 1.0, "exit_reason": "roi",
+         "open_date": pd.Timestamp(START - timedelta(seconds=10))},
+        {"pair": "BTC/USDT:USDT", "is_short": False, "profit_abs": 2.0, "exit_reason": "roi",
+         "open_date": pd.Timestamp(START + timedelta(hours=1))},
+        {"pair": "BTC/USDT:USDT", "is_short": True, "profit_abs": 9.0, "exit_reason": "roi",
+         "open_date": pd.Timestamp(START - timedelta(hours=3))},
+        {"pair": "SOL/USDT:USDT", "is_short": True, "profit_abs": 4.0, "exit_reason": "force_exit",
+         "open_date": pd.Timestamp(START + timedelta(hours=5))},
     ])
     monkeypatch.setattr(bta, "load_backtest_data", lambda directory, strategy: frame)
     trades = readiness.backtest_trades("TrendRegimeV1", START, NOW)
-    assert trades == [{"pair": "BTC/USDT:USDT", "short": False, "open": START + timedelta(hours=1), "profit": 2.0}]
+    assert trades == [{"pair": "ETH/USDT:USDT", "short": False, "open": START - timedelta(seconds=10), "profit": 1.0},
+                      {"pair": "BTC/USDT:USDT", "short": False, "open": START + timedelta(hours=1), "profit": 2.0}]
     assert calls[0][1] == "download-data" and calls[1][1] == "backtesting"
     assert "20261030-20261121" in calls[1]
 

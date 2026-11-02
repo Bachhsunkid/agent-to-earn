@@ -26,6 +26,10 @@ the trades one by one (same pair and side, entry within 2 hours). The verdict is
 | profitable | paper P&L above zero |
 
 `wait` while the first two are short, `not_ready` if anything fails, `ready` otherwise.
+Below 20 closed trades a failed comparison check shows as `wait`: a handful of trades
+says nothing either way. Backtest trades are taken from two hours before the first paper
+trade (the bot fills seconds after the candle the backtest enters on), and backtest trades
+still open at the last candle are left out, as open paper trades are.
 It runs before each research loop and on demand (`make readiness`); the dashboard shows it.
 
 The report covers recent data that the gate holds out, so it is written to

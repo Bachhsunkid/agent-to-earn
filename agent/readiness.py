@@ -83,7 +83,11 @@ def match(paper: list[dict], backtest: list[dict], window: timedelta = MATCH_WIN
 
 
 def backtest_trades(strategy: str, start: datetime, end: datetime) -> list[dict]:
-    """Closed backtest trades of `strategy` that opened in [start, end)."""
+    """Closed backtest trades of `strategy` that opened in [start - MATCH_WINDOW, end).
+
+    The window opens early because the bot fills seconds after the candle the backtest enters
+    on. Trades still open at the last candle (force_exit) are left out, like open paper trades.
+    """
     from freqtrade.data.btanalysis import load_backtest_data
 
     out_dir = common.RESULTS / "readiness" / uuid.uuid4().hex[:8]
@@ -98,7 +102,8 @@ def backtest_trades(strategy: str, start: datetime, end: datetime) -> list[dict]
         if proc.returncode != 0:
             raise RuntimeError(f"{args[1]} failed:\n{common.tail(proc)}")
     df = load_backtest_data(out_dir, strategy)
-    return [t for t in (normalize(r) for r in df.to_dict("records")) if start <= t["open"] < end]
+    rows = [r for r in df.to_dict("records") if r.get("exit_reason") != "force_exit"]
+    return [t for t in map(normalize, rows) if start - MATCH_WINDOW <= t["open"] < end]
 
 
 def check(name: str, status: str, detail: str) -> dict:
@@ -135,6 +140,10 @@ def evaluate(config: dict, trades: list[dict], backtest, uptime: dict, now: date
                             f"paper {paper_profit:+.2f} vs backtest {bt_profit:+.2f} USDT (floor {floor:+.2f})"))
         checks.append(check("profitable", "pass" if paper_profit > 0 else "fail",
                             f"paper P&L {paper_profit:+.2f} USDT"))
+        if len(closed) < MIN_CLOSED_TRADES:
+            # A handful of trades proves nothing either way: report misses, but keep waiting.
+            for c in checks[-3:]:
+                c["status"] = "wait" if c["status"] == "fail" else c["status"]
     statuses = {c["status"] for c in checks}
     verdict = "not_ready" if "fail" in statuses else "wait" if "wait" in statuses else "ready"
     return {"generated_at": now.isoformat(timespec="seconds"), "strategy": strategy, "verdict": verdict,
