@@ -23,7 +23,7 @@
   "dashboard/public_snapshot.py": "ef5dd73db0bf5daddaa1cd000e852c4c8c98e22bc5ade14d990ef924a63bab00",
   "dashboard/donations.py": "282c561aa6388b25fe006f3a01af6e48662ca246be7e4232d57406d8b892de0f",
   "dashboard/finance.py": "db1b9e2a4aeaa8746ba761b2283a9494407a5fa26fb3a1563683c8b41fb1e90b",
-  "public/app.py": "fa13765dbb346f1d72d0e6cffe00acb5205dc6d79bcdd8b0b5b62710d4f2deee",
+  "public/app.py": "29960825f1b1f158672eeabf683a05955dcf50e68add2fd6efd4ed05c05978ff",
   "tests/conftest.py": "24b046fffe3bbac8512d16fc80916c95880d2e7eef5e5f87057ad5141ed67250",
   "tests/test_guarded_strategy.py": "a7a7cb319bdae153a45af9c95b21b618a43054d6f8b804cf73a6452814d81c63",
   "tests/test_gate.py": "43b5c2f12837b54ae5ecab464a984e3ce264f6ffaa01dde65d48ff9469e420a6"

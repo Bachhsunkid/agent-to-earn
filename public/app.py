@@ -34,6 +34,9 @@ app = FastAPI(title="agent-to-earn public", docs_url=None, redoc_url=None, opena
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers.update(SECURITY_HEADERS)
+    # Without it browsers cache the page heuristically for hours and mix old HTML/JS after a deploy.
+    # no-cache revalidates by ETag, so an unchanged file still costs only a 304.
+    response.headers.setdefault("Cache-Control", "no-cache")
     return response
 
 

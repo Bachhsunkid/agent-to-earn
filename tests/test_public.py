@@ -160,7 +160,9 @@ def test_public_app_serves_page_and_snapshot(public_client):
     assert page.status_code == 200 and "Bit the Trading Bot" in page.text
     assert "script-src 'self'" in page.headers["content-security-policy"]
     assert page.headers["x-content-type-options"] == "nosniff"
-    assert client.get("/app.js").status_code == 200
+    script = client.get("/app.js")
+    assert script.status_code == 200 and page.headers["cache-control"] == script.headers["cache-control"] == "no-cache"
+    assert client.get("/app.js", headers={"If-None-Match": script.headers["etag"]}).status_code == 304
 
     missing = client.get("/api/snapshot.json")
     assert missing.status_code == 503 and missing.headers["cache-control"] == "no-store"
