@@ -25,6 +25,18 @@ fi
 trap 'rmdir "$RUNS/.loop.lock"' EXIT
 record running 0
 
+# Today's point-in-time universe, needed by the bot even when research cannot run. The bot
+# re-reads universe.json on its own; a new pair in the whitelist needs a config reload.
+pairs_before=$(cat user_data/config.pairs.json 2>/dev/null)
+if ! python3 scripts/build_universe.py >>"$LOG" 2>&1; then
+  record universe 1
+  notify "Research loop $STAMP: universe rebuild failed, the bot stops entering trades once its list is 2 days old; see $LOG"
+  exit 1
+fi
+if [ "$pairs_before" != "$(cat user_data/config.pairs.json)" ]; then
+  python3 -c 'import sys; sys.path.insert(0, "agent"); import gate; print("whitelist changed:", gate.reload_bot())' >>"$LOG" 2>&1
+fi
+
 if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   record config 1
   notify "Research loop $STAMP skipped: CLAUDE_CODE_OAUTH_TOKEN is not set in .env (run: claude setup-token)"

@@ -36,8 +36,15 @@ docker compose up -d --build
 - `CLAUDE_CODE_OAUTH_TOKEN`: from `claude setup-token` on any machine logged in to your
   Claude subscription (valid one year). Without it the bot trades but research is skipped.
 
-`docker compose up` refuses to start if a required value is missing. The first research
-loop downloads the candle history (a few minutes).
+`docker compose up` refuses to start if a required value is missing. The bot only enters
+pairs on the day's universe list ([ADR-0006](docs/adr/0006-point-in-time-universe.md)), so
+build it once before the first night, then fetch the candles (about half an hour):
+
+```bash
+make universe && make data && docker compose restart freqtrade
+```
+
+The nightly research loop rebuilds the universe and refreshes the candles after that.
 
 Both pages log in with `API_USERNAME` / `API_PASSWORD`:
 
@@ -121,7 +128,7 @@ The Makefile holds optional shortcuts:
 | `make loop` | Run one research loop now (data refresh, Claude, gate) |
 | `make backtest STRATEGY=Name` | In-sample backtest (latest 120 days are held out) |
 | `make test` / `make cov` | Test suite / with coverage |
-| `make watchlist && make data` | Rebuild the 15-pair watchlist by 24h volume |
+| `make universe && make data` | Rebuild today's top-15 volume universe and fetch its candles |
 | `make down` | Stop all services |
 
 The gate promotes strategies on the machine that runs the loop: it changes
@@ -152,7 +159,8 @@ docker-compose.yml                 services; docker/ holds the images and bot en
 user_data/config.json              base config, also used by backtests (operator-owned)
 user_data/config.rpc.json          Telegram and REST API settings, running bot only
 user_data/config.live.json         live overlay: dry_run off, capital limit
-user_data/config.pairs.json        watchlist (scripts/build_watchlist.py)
+user_data/universe.json            daily top-15 volume lists (scripts/build_universe.py)
+user_data/config.pairs.json        whitelist: every pair ever in the universe (generated)
 user_data/config.strategy.json     live strategy name (written by the gate)
 user_data/strategies/guarded_strategy.py   risk guardrails
 user_data/strategies/live/         the strategy the bot runs

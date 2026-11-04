@@ -6,7 +6,7 @@ CFG       := --config user_data/config.json
 DATA_FROM := 20250801
 STRATEGY  ?= $(shell python3 -c 'import json;print(json.load(open("user_data/config.strategy.json"))["strategy"])')
 
-.PHONY: help build env chat-id watchlist data test cov backtest lock up down logs soak readiness loop public-url
+.PHONY: help build env chat-id universe data test cov backtest lock up down logs soak readiness loop public-url
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -20,10 +20,10 @@ env: ## Create or complete .env, generating the API secrets (never prints values
 chat-id: ## Store TELEGRAM_CHAT_ID in .env (message the bot first, bot must be stopped)
 	python3 scripts/telegram_chat_id.py
 
-watchlist: ## Rebuild the 15-pair watchlist from Binance 24h volume
-	$(TOOLS) python scripts/build_watchlist.py
+universe: ## Rebuild the point-in-time top-15 volume universe and its whitelist (also nightly)
+	$(TOOLS) python scripts/build_universe.py
 
-data: ## Download or refresh 1h/2h/4h futures candles for the watchlist
+data: ## Download or refresh 1h/2h/4h futures candles for the whitelist
 	$(TOOLS) freqtrade download-data $(CFG) --timerange $(DATA_FROM)- --timeframes 1h 2h 4h
 
 test: ## Run the test suite

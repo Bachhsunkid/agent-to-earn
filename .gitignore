@@ -11,6 +11,10 @@ user_data/*.sqlite
 user_data/*.sqlite-*
 user_data/strategies_archive/
 
+# Point-in-time universe and its whitelist, rebuilt nightly (scripts/build_universe.py)
+user_data/universe.json
+user_data/config.pairs.json
+
 # Public page: snapshot written at runtime, operator's site config and QR images
 user_data/public/*
 !user_data/public/.gitkeep

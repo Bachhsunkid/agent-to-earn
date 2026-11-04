@@ -14,6 +14,10 @@ if [ "${DRY_RUN:-true}" = "false" ]; then
   db=tradesv3.live.sqlite
   extra="--config /freqtrade/user_data/config.live.json"
 fi
+# The whitelist is generated (scripts/build_universe.py); a fresh clone starts from the example.
+# Without user_data/universe.json the bot refuses every entry, so run `make universe` first.
+[ -f /freqtrade/user_data/config.pairs.json ] ||
+  cp /freqtrade/user_data/config.pairs.example.json /freqtrade/user_data/config.pairs.json
 echo "starting freqtrade: DRY_RUN=${DRY_RUN:-true}, database $db"
 # $extra is intentionally unquoted: it is empty or two arguments.
 exec freqtrade trade \

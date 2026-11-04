@@ -13,11 +13,18 @@ Sizing model: the stop always costs ``STOPLOSS_RATIO`` of the stake (margin).
 Leverage is chosen so that this loss happens at ``stop_dist`` away from entry,
 and the stake is chosen so that this loss equals the risk budget. Leverage
 therefore only changes how much margin is locked, not how much can be lost.
+
+Universe: entries are limited to the pairs in that day's point-in-time volume
+universe (``user_data/universe.json``, written by scripts/build_universe.py). The
+same file drives backtests and the live bot, so research cannot pick pairs with
+hindsight.
 """
 
+import json
 import logging
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from freqtrade.persistence import Trade
@@ -40,6 +47,9 @@ DEFAULT_RISK_MULT = 0.5
 # Stop opening trades once equity falls below this share of the starting balance ($200 of $340).
 EQUITY_FLOOR_RATIO = 200 / 340
 ALLOWED_TIMEFRAMES = frozenset({"1h", "2h", "4h"})
+UNIVERSE_FILE = "universe.json"
+# The nightly job adds each day's list after 00:00 UTC; fall back to an older list for this long.
+UNIVERSE_MAX_AGE_DAYS = 2
 
 GUARDED_MEMBERS = frozenset({
     "__init__",
@@ -72,6 +82,35 @@ def _clamp(value: Any, low: float, high: float, default: float) -> float:
     if math.isnan(value):
         return default
     return min(max(value, low), high)
+
+
+_universe_cache: dict[Path, tuple[float, dict[str, frozenset[str]]]] = {}
+
+
+def load_universe(path: Path) -> dict[str, frozenset[str]]:
+    """{YYYY-MM-DD: pairs} from universe.json, re-read when the file changes; {} if unusable."""
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        return {}
+    cached = _universe_cache.get(path)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    try:
+        universe = {day: frozenset(pairs) for day, pairs in json.loads(path.read_text())["days"].items()}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        universe = {}
+    _universe_cache[path] = (mtime, universe)
+    return universe
+
+
+def universe_members(universe: dict[str, frozenset[str]], when: datetime) -> frozenset[str] | None:
+    """Pairs tradable on `when`'s UTC day, or None when the universe has no recent list."""
+    for back in range(UNIVERSE_MAX_AGE_DAYS + 1):
+        members = universe.get((when.date() - timedelta(days=back)).isoformat())
+        if members is not None:
+            return members
+    return None
 
 
 class GuardedStrategy(IStrategy):
@@ -159,4 +198,10 @@ class GuardedStrategy(IStrategy):
             logger.warning("Equity floor hit (%.2f < %.2f), refusing %s entry on %s",
                            equity, starting * EQUITY_FLOOR_RATIO, side, pair)
             return False
-        return True
+        path = Path(self.config.get("user_data_dir") or "user_data") / UNIVERSE_FILE
+        members = universe_members(load_universe(path), current_time)
+        if members is None:
+            logger.warning("No universe list for %s in %s, refusing %s entry on %s",
+                           current_time.date(), path, side, pair)
+            return False
+        return pair in members

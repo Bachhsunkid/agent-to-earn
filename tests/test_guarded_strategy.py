@@ -1,4 +1,6 @@
-from datetime import UTC, datetime
+import json
+import os
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from conftest import STRATEGY_CONFIG, FakeDataProvider, FakeTrade, FakeWallets
@@ -7,6 +9,21 @@ import guarded_strategy as gs
 from guarded_strategy import GuardedStrategy
 
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+@pytest.fixture(autouse=True)
+def universe(tmp_path, monkeypatch):
+    """Every probe reads tmp_path/universe.json, where BTC is tradable on NOW's day."""
+    path = tmp_path / gs.UNIVERSE_FILE
+    monkeypatch.setitem(STRATEGY_CONFIG, "user_data_dir", tmp_path)
+
+    def write(days: dict) -> None:
+        path.write_text(json.dumps({"top": 15, "days": days}))
+        stat = path.stat()  # same-second rewrites must still invalidate the cache
+        os.utime(path, (stat.st_atime, stat.st_mtime + len(gs._universe_cache) + 1))
+
+    write({"2026-01-01": ["BTC/USDT:USDT"]})
+    return write
 
 
 class Probe(GuardedStrategy):
@@ -168,6 +185,31 @@ def test_equity_floor_scales_with_starting_balance():
 
 def test_equity_floor_ignored_without_starting_balance():
     assert confirm(make_probe(equity=10.0, starting=0.0)) is True
+
+
+# --- universe ------------------------------------------------------------------
+
+def test_entry_refused_outside_the_days_universe(universe):
+    universe({"2026-01-01": ["ETH/USDT:USDT"]})
+    assert confirm(make_probe()) is False
+
+
+def test_universe_falls_back_to_a_recent_list_only(universe):
+    old = (NOW - timedelta(days=gs.UNIVERSE_MAX_AGE_DAYS)).date().isoformat()
+    universe({old: ["BTC/USDT:USDT"]})
+    assert confirm(make_probe()) is True
+    too_old = (NOW - timedelta(days=gs.UNIVERSE_MAX_AGE_DAYS + 1)).date().isoformat()
+    universe({too_old: ["BTC/USDT:USDT"]})
+    assert confirm(make_probe()) is False
+
+
+@pytest.mark.parametrize("content", [None, "not json", '{"no_days": 1}', '{"days": [1]}'])
+def test_missing_or_broken_universe_refuses_entries(tmp_path, content):
+    path = tmp_path / gs.UNIVERSE_FILE
+    path.unlink()
+    if content is not None:
+        path.write_text(content)
+    assert confirm(make_probe()) is False
 
 
 # --- protections ---------------------------------------------------------------

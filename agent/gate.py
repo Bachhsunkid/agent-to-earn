@@ -51,6 +51,7 @@ PROTECTED = [
     "agent/loop.settings.json",
     "agent/run_loop.sh",
     "agent/scheduler.sh",
+    "scripts/build_universe.py",
     "dashboard/app.py",
     "dashboard/public_snapshot.py",
     "dashboard/donations.py",

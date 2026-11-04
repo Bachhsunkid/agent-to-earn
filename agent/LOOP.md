@@ -1,8 +1,14 @@
 # Research loop instructions
 
 You are the research agent of a crypto futures trading bot (Freqtrade 2026.9, Binance
-USDⓈ-M perpetuals, 15-pair watchlist in `user_data/config.pairs.json`). You run unattended
-once per night. Your job: find a strategy with better risk-adjusted profit than the live one.
+USDⓈ-M perpetuals). You run unattended once per night. Your job: find a strategy with
+better risk-adjusted profit than the live one.
+
+The bot trades a point-in-time universe: each day it may only enter the top 15 perpetuals
+by the previous 7 days' quote volume (`user_data/universe.json`, built by
+`scripts/build_universe.py`). `GuardedStrategy` enforces this in backtests and live alike;
+the whitelist in `user_data/config.pairs.json` is every pair that was ever in the universe
+(about 190), so per-pair backtest results include many pairs with only a few trades.
 
 Risk management is not your job and you cannot change it. Leverage (max 10x), position
 size, stop-loss, drawdown breakers and the equity floor live in
@@ -43,10 +49,23 @@ How to run commands (you start in the repo root):
   functools, typing, guarded_strategy. Module level: imports, constants, one class.
 - No lookahead: no `shift(-n)`, no centered windows, no statistics over the whole series.
 - Fewer, better trades. Backtests charge 0.05% taker fees per side and funding; `bt.py`
-  reports `fees_abs`, `funding_abs` and `avg_hold_hours`, and `profit_total_abs` is net of
-  both. Fees are the biggest drag: on 2025-08 to 2026-10, TrendRegimeV1 paid $96 in fees on
-  $268 gross profit (1190 trades). Cutting trades that barely cover two fees is the
+  reports `fees_abs`, `funding_abs` (positive = received) and `avg_hold_hours`, and
+  `profit_total_abs` is net of both. Cutting trades that barely cover two fees is the
   cheapest edge you can find.
+
+## What the operator's review (2026-11-04) found
+
+Read this before picking a hypothesis; it overrides older journal notes.
+- Until 2026-11-04 every backtest ran on 15 pairs picked by volume on 2026-10-29, which
+  favoured coins that had just rallied. Results in journals before that date are inflated.
+- Donchian breakout shorts lost money on every universe and in every period tested
+  (TrendRegimeV1 shorts: -109 USDT on the volume universe, -64 on a fixed majors basket).
+- Trend profits come from a few big runs: most months lose a little and a handful of trades
+  (often squeezed small caps paying longs a large negative funding) make the year. Check
+  how much of a candidate's profit comes from its top 3 pairs and from funding.
+- The live strategy is now TrendLong4hV1: TrendRegimeV1's breakout on 4h, long only.
+- A Bollinger/RSI mean-reversion on 4h (RangeReversion2hV1, 2026-11-04 journal) was the
+  only idea positive on every universe tested, with a third of the drawdown, but small.
 
 ## Procedure
 
@@ -56,8 +75,11 @@ How to run commands (you start in the repo root):
    and exit reasons.
 3. Pick ONE hypothesis grounded in that evidence. Do not tune many parameters to fit history.
 4. Write the candidate and backtest it in-sample. Iterate at most 4 times.
-5. Submit to the gate only if in-sample profit factor >= 1.05, drawdown <= 30%, and it
-   beats the baseline in-sample. Otherwise do not submit; record why in the journal.
+5. Submit to the gate only if in-sample profit factor >= 1.05, drawdown <= 30%, and either
+   it beats the baseline in-sample, or it is a different signal family from the live
+   strategy (not a variant of it) with profit factor >= 1.1 and clearly lower drawdown.
+   The gate's held-out test decides; the in-sample period may favour the live strategy's
+   style. Otherwise do not submit; record why in the journal.
 6. Write the journal entry:
 
 ```
