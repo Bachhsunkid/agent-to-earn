@@ -13,7 +13,7 @@
   "agent/bt.py": "6975106f05c46b3fc3c2b5437f8617abf496d4e6d0a11fa48eab1188eed98cf4",
   "agent/bt_metrics.py": "2ffceef43ffeef4805067c73cc0928796cf4aa3942c97d33875a4e9eb3c9d5c5",
   "agent/notify.py": "1a87eb927ee103fd7f8f7a679ca979885519be0f09a7fa77142f83f48af1a7ae",
-  "agent/perf_snapshot.py": "5a977176749822b905519a4d27d1afef7faea7c5e605aa02e515e0f1bca1b6ab",
+  "agent/perf_snapshot.py": "3d2eb74304bf7a0daf0506a721269662f5ca1d54627b82aab578339c20ac71b3",
   "agent/readiness.py": "b90f5a7c0fe032b2f155bbd3e53a412728cbb4e60fff5ba84a00861d1b9d4657",
   "agent/LOOP.md": "e09e3b487d42c29dc0c450da7a5c62908cf9a22721e8abf873ae386c81330d35",
   "agent/loop.settings.json": "120453ac34e6dbe5c3e36fa5fe3f8b47a888803001bf7b935eef13068c91d0b6",

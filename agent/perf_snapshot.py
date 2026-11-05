@@ -10,7 +10,7 @@ import urllib.request
 
 import common
 
-TRADE_FIELDS = ("pair", "is_short", "leverage", "stake_amount", "open_date", "close_date",
+TRADE_FIELDS = ("pair", "strategy", "is_short", "leverage", "stake_amount", "open_date", "close_date",
                 "profit_ratio", "profit_abs", "exit_reason", "enter_tag")
 
 
