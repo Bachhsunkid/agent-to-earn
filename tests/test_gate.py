@@ -545,8 +545,10 @@ def test_perf_snapshot(monkeypatch, capsys):
     replies = {
         "profit": {"trade_count": 3, "profit_all_coin": 1.5},
         "status": [{"pair": "BTC/USDT:USDT", "leverage": 5, "is_open": True}],
-        "trades?limit=30&order_by_id=false": {"trades": [{"pair": "ETH/USDT:USDT", "is_open": False, "profit_abs": 2},
-                                       {"pair": "BTC/USDT:USDT", "is_open": True}]},
+        "trades?limit=30&order_by_id=false": {"trades": [
+            {"pair": "ETH/USDT:USDT", "strategy": "TrendRegimeV1", "is_open": False, "profit_abs": 2},
+            {"pair": "SOL/USDT:USDT", "strategy": "OldV0", "is_open": False, "profit_abs": -1},
+            {"pair": "BTC/USDT:USDT", "strategy": "TrendRegimeV1", "is_open": True}]},
         "show_config": {"strategy": "TrendRegimeV1", "dry_run": True, "state": "running"},
     }
     monkeypatch.setattr(perf_snapshot.urllib.request, "urlopen", lambda req, timeout: FakeResponse(
@@ -554,6 +556,8 @@ def test_perf_snapshot(monkeypatch, capsys):
     assert perf_snapshot.main() == 0
     out = json.loads(capsys.readouterr().out)
     assert out["strategy"] == "TrendRegimeV1" and len(out["recent_closed"]) == 1
+    assert out["recent_closed"][0]["pair"] == "ETH/USDT:USDT"
+    assert out["recent_closed_by_retired_strategies"] == 1
     assert out["open_trades"][0]["leverage"] == 5
 
     def down(req, timeout):

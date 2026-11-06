@@ -31,15 +31,19 @@ def main() -> int:
     except (OSError, KeyError, ValueError) as exc:
         print(f"bot API not reachable ({type(exc).__name__}); is the bot running?", file=sys.stderr)
         return 1
+    strategy = config.get("strategy")
+    closed = [t for t in recent if not t.get("is_open")]
     snapshot = {
-        "strategy": config.get("strategy"),
+        "strategy": strategy,
         "dry_run": config.get("dry_run"),
         "state": config.get("state"),
-        "profit": {k: profit.get(k) for k in (
+        # The bot's totals include trades of strategies that are no longer live.
+        "profit_all_strategies": {k: profit.get(k) for k in (
             "trade_count", "closed_trade_count", "profit_closed_coin", "profit_closed_percent",
             "profit_all_coin", "winning_trades", "losing_trades", "max_drawdown", "first_trade_date")},
         "open_trades": [{k: t.get(k) for k in TRADE_FIELDS} for t in open_trades],
-        "recent_closed": [{k: t.get(k) for k in TRADE_FIELDS} for t in recent if not t.get("is_open")],
+        "recent_closed": [{k: t.get(k) for k in TRADE_FIELDS} for t in closed if t.get("strategy") == strategy],
+        "recent_closed_by_retired_strategies": sum(t.get("strategy") != strategy for t in closed),
     }
     print(json.dumps(snapshot, indent=1, default=str))
     return 0
