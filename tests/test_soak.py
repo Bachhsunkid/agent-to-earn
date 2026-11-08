@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from soak_check import analyze, main
+from soak_check import analyze, main, read_log
 
 NOW = datetime(2026, 10, 30, 12, 0, 0)
 
@@ -48,3 +48,15 @@ def test_main(tmp_path, capsys):
     log.write_text("")
     assert main(["--log", str(log), "--hours", "1"]) == 1
     assert "result: FAIL" in capsys.readouterr().out
+
+
+def test_read_log_includes_rotated_files_oldest_first(tmp_path):
+    log = tmp_path / "ft.log"
+    assert read_log(log) == []
+    (tmp_path / "ft.log.2").write_text("a\n")
+    (tmp_path / "ft.log.10").write_text("old\n")
+    (tmp_path / "ft.log.1").write_text("b\n")
+    (tmp_path / "ft.log.bak").write_text("ignored\n")
+    log.write_text("c\n")
+    assert read_log(log) == ["old", "a", "b", "c"]
+

@@ -164,8 +164,7 @@ def main(argv: list[str]) -> int:
     now = datetime.now(UTC)
     try:
         config, trades = paper_trades()
-        log = soak.LOG.read_text(errors="replace").splitlines() if soak.LOG.exists() else []
-        uptime = soak.analyze(log, now.replace(tzinfo=None), UPTIME_HOURS)
+        uptime = soak.analyze(soak.read_log(soak.LOG), now.replace(tzinfo=None), UPTIME_HOURS)
         report = evaluate(config, trades, backtest_trades, uptime, now)
     except (OSError, KeyError, ValueError, RuntimeError) as exc:
         report = {"generated_at": now.isoformat(timespec="seconds"), "verdict": "error",

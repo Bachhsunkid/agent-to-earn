@@ -19,6 +19,13 @@ LINE = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d+ - (\S+) - (\w+) - (.*)
 HEARTBEAT_INTERVAL = 60
 
 
+def read_log(path: Path) -> list[str]:
+    """Lines of `path` and its rotated copies (path.1 is the newest), oldest first; [] if none."""
+    rotated = [p for p in path.parent.glob(path.name + ".*") if p.suffix[1:].isdigit()]
+    parts = sorted(rotated, key=lambda p: int(p.suffix[1:]), reverse=True) + [path]
+    return [line for part in parts if part.exists() for line in part.read_text(errors="replace").splitlines()]
+
+
 def analyze(lines, now: datetime, hours: float, interval: int = HEARTBEAT_INTERVAL) -> dict:
     window_start = now - timedelta(hours=hours)
     first_seen, beats, errors, warnings, telegram_errors = None, [], [], 0, 0
@@ -60,7 +67,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--log", type=Path, default=LOG)
     args = parser.parse_args(argv)
     now = datetime.now(UTC).replace(tzinfo=None)
-    report = analyze(args.log.read_text(errors="replace").splitlines(), now, args.hours)
+    report = analyze(read_log(args.log), now, args.hours)
     ok = report["uptime"] >= args.min_uptime and report["errors"] <= args.max_errors
     for key, value in report.items():
         print(f"{key}: {value}")
