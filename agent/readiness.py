@@ -46,8 +46,9 @@ def api_get(path: str):
 
 
 def paper_trades(get=api_get) -> tuple[dict, list[dict]]:
+    """Bot config and all its trades: /trades lists closed ones only, /status the open ones."""
     config = get("show_config")
-    trades, offset = [], 0
+    trades, offset = get("status"), 0
     while True:
         page = get(f"trades?limit=500&offset={offset}").get("trades", [])
         trades += page

@@ -95,10 +95,12 @@ def test_paper_trades_pages_through_the_api():
     def get(path):
         if path == "show_config":
             return CONFIG
+        if path == "status":
+            return [{"n": "open"}]
         return pages[int(path.split("offset=")[1])]
 
     config, trades = readiness.paper_trades(get)
-    assert config == CONFIG and len(trades) == 501
+    assert config == CONFIG and len(trades) == 502 and trades[0] == {"n": "open"}
 
 
 def test_backtest_trades_runs_freqtrade_and_filters_window(tmp_path, monkeypatch):
