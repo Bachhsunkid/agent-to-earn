@@ -18,7 +18,7 @@ the trades one by one (same pair and side, entry within 2 hours). The verdict is
 
 | Check | Pass when |
 | --- | --- |
-| paper_days | at least 14 days of paper trading with the current strategy |
+| paper_days | at least 14 days since the current strategy's first entry |
 | sample | at least 20 closed paper trades |
 | uptime | at least 95% heartbeat uptime over 72 hours |
 | agreement | at least 70% of the trades on both sides match |

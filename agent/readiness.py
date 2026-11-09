@@ -117,7 +117,9 @@ def evaluate(config: dict, trades: list[dict], backtest, uptime: dict, now: date
     if not config.get("dry_run", True):
         checks.append(check("mode", "info", "bot is trading live; readiness applies to paper trading"))
     first = min((t["open"] for t in closed), default=None)
-    days = (now - first).total_seconds() / 86400 if first else 0.0
+    # The clock starts at the strategy's first entry, even while that trade is still open.
+    started = min((parse_time(t["open_date"]) for t in trades if t.get("strategy") == strategy), default=None)
+    days = (now - started).total_seconds() / 86400 if started else 0.0
     checks.append(check("paper_days", "pass" if days >= MIN_PAPER_DAYS else "wait",
                         f"{days:.1f} of {MIN_PAPER_DAYS} days of paper trading with {strategy}"))
     checks.append(check("sample", "pass" if len(closed) >= MIN_CLOSED_TRADES else "wait",

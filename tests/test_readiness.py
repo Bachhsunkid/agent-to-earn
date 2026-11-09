@@ -54,6 +54,13 @@ def test_wait_for_more_days_and_trades():
     assert evaluate([], [])["comparison"] is None
 
 
+def test_paper_days_start_at_the_first_entry_even_if_still_open():
+    report = evaluate([api_trade(0, is_open=True), api_trade(-48, strategy="OldStrategy")], [])
+    days = next(c for c in report["checks"] if c["name"] == "paper_days")
+    assert days["detail"].startswith("20.0 of 14 days") and days["status"] == "pass"
+    assert report["verdict"] == "wait" and report["comparison"] is None
+
+
 def test_small_sample_misses_wait_instead_of_failing():
     report = evaluate([api_trade(470, profit=-1)], [])
     statuses = {c["name"]: c["status"] for c in report["checks"]}
