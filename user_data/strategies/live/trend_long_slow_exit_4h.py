@@ -4,14 +4,12 @@ from pandas import DataFrame
 from guarded_strategy import GuardedStrategy
 
 
-class TrendLong4hV1(GuardedStrategy):
-    """Long-only Donchian breakout on 4h in the direction of the 200 EMA trend.
+class TrendLongSlowExit4hV1(GuardedStrategy):
+    """TrendLong4hV1 entries with a slower exit: the 20-bar Donchian low instead of the 10-bar.
 
-    TrendRegimeV1's logic on 4h candles without the short side: across the point-in-time
-    volume universe, a fixed majors basket and the old hand-picked watchlist, breakout shorts
-    lost money in every period, and 4h cuts the fee drag to a fraction of the 1h version.
-    Regime: stand aside when ADX < 20, half risk in a weak trend, full risk when the trend
-    is strong and volatility is above its recent median.
+    The live strategy's profit comes from a few long runs (and the funding they collect),
+    while the 10-bar exit cuts them at the first pullback. A wider exit lets winners run.
+    Entries, stop and regime are unchanged.
     """
 
     timeframe = "4h"
@@ -24,7 +22,7 @@ class TrendLong4hV1(GuardedStrategy):
         df["adx"] = ta.ADX(df, timeperiod=14)
         df["atr"] = ta.ATR(df, timeperiod=14)
         df["dc_high"] = df["high"].rolling(20).max().shift(1)
-        df["exit_low"] = df["low"].rolling(10).min().shift(1)
+        df["exit_low"] = df["low"].rolling(20).min().shift(1)
 
         atr_pct = df["atr"] / df["close"]
         df["atr_rank"] = atr_pct.rolling(500, min_periods=100).rank(pct=True)
