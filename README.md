@@ -176,3 +176,8 @@ tests/                             guardrail, strategy, gate, dashboard and tool
 
 Protected files are hashed in `agent/guardrails.lock`; the gate refuses to run if they
 change. After a deliberate change run `make test && make lock` and commit both.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Trading futures can lose all the capital you put in;
+nothing here is financial advice.
