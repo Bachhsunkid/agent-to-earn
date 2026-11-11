@@ -16,7 +16,7 @@ size, stop-loss, drawdown breakers and the equity floor live in
 
 ## Allowed actions
 
-- Read files in the repo (secrets and gate results are blocked).
+- Read files in the repo (secrets, gate results and the operator's ADRs are blocked).
 - Create exactly one new file `user_data/strategies/candidates/<snake_name>.py`.
 - Research backtests (in-sample only, the latest 120 days are held out):
   `python3 agent/bt.py <ClassName> [--timerange YYYYMMDD-YYYYMMDD]`
@@ -52,6 +52,10 @@ How to run commands (you start in the repo root):
   reports `fees_abs`, `funding_abs` (positive = received) and `avg_hold_hours`, and
   `profit_total_abs` is net of both. Cutting trades that barely cover two fees is the
   cheapest edge you can find.
+- The gate compares candidate and live strategy on `profit_fixed_abs` (every trade sized
+  from the starting balance, so one early winner does not inflate later stakes) and on
+  `profit_fixed_ex_best_abs` (the same without the single best trade). A candidate must win
+  both, so an edge that rests on one lucky trade fails. `bt.py` reports both in-sample.
 
 ## What the operator's review (2026-11-04) found
 

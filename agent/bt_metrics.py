@@ -23,11 +23,30 @@ def trading_costs(trades: list[dict]) -> dict:
             "avg_hold_hours": round(hold, 1)}
 
 
+def fixed_stake_profit(trades: list[dict], starting_balance: float) -> dict:
+    """Profit as if every trade had been sized from the starting balance, with and without the
+    single best trade.
+
+    Stakes follow equity, so one huge winner inflates every later trade, and a few outliers can
+    decide a comparison on their own. Each trade's profit is scaled by starting balance over the
+    equity it was sized from (starting balance plus profit closed before it opened).
+    """
+    closed = sorted((t["close_timestamp"], t["profit_abs"]) for t in trades)
+    scaled = []
+    for t in trades:
+        equity = starting_balance + sum(p for ts, p in closed if ts <= t["open_timestamp"])
+        scaled.append(t["profit_abs"] * starting_balance / equity if equity > 0 else 0.0)
+    total = sum(scaled)
+    best = max(0.0, max(scaled, default=0.0))
+    return {"profit_fixed_abs": round(total, 2), "profit_fixed_ex_best_abs": round(total - best, 2)}
+
+
 def summarize(stats: dict, strategy: str, detail: bool = False) -> dict:
     s = stats["strategy"][strategy]
     out = {k: s.get(k) for k in FIELDS}
     out["max_leverage"] = max((t["leverage"] for t in s.get("trades", [])), default=0.0)
     out |= trading_costs(s.get("trades", []))
+    out |= fixed_stake_profit(s.get("trades", []), s.get("starting_balance") or 0.0)
     if detail:
         out["per_pair"] = [
             {"pair": r["key"], "trades": r["trades"], "profit_abs": round(r["profit_total_abs"], 2)}

@@ -7,7 +7,8 @@ A candidate replaces the live strategy only if every check passes:
   2. static checks: one GuardedStrategy subclass, allowed imports, no escape hatches
   3. the test suite passes
   4. lookahead-analysis finds no bias
-  5. in-sample and out-of-sample backtests meet CRITERIA and beat the live strategy
+  5. in-sample and out-of-sample backtests meet CRITERIA and beat the live strategy out of
+     sample, at a fixed stake both with and without each side's single best trade
 Passing candidates move to live/ and the bot reloads; failing ones move to the archive.
 The agent sees pass/fail per out-of-sample criterion, never the out-of-sample numbers.
 """
@@ -242,8 +243,12 @@ def beats_incumbent(candidate: dict, incumbent: dict | None) -> list[str]:
     if incumbent is None:
         return []
     failures = []
-    if (candidate.get("profit_total_abs") or 0) <= (incumbent.get("profit_total_abs") or 0):
-        failures.append("beat_live_profit")
+    # Fixed-stake profit, so one early outlier cannot inflate every later trade; and again
+    # without each side's best trade, so one outlier cannot decide the comparison.
+    for key, name in (("profit_fixed_abs", "beat_live_profit"),
+                      ("profit_fixed_ex_best_abs", "beat_live_profit_ex_best")):
+        if (candidate.get(key) or 0) <= (incumbent.get(key) or 0):
+            failures.append(name)
     if (candidate.get("max_drawdown_account") or 0) > (incumbent.get("max_drawdown_account") or 0) + MAX_EXTRA_DRAWDOWN:
         failures.append("beat_live_drawdown")
     return failures
@@ -252,7 +257,9 @@ def beats_incumbent(candidate: dict, incumbent: dict | None) -> list[str]:
 def incumbent_oos(strategy: str, oos_range: str) -> dict | None:
     cache = GATE_RESULTS / f"incumbent-{strategy}-{oos_range.rstrip('-')}.json"
     if cache.exists():
-        return json.loads(cache.read_text())
+        cached = json.loads(cache.read_text())
+        if "profit_fixed_ex_best_abs" in cached:  # older caches lack the fixed-stake metrics
+            return cached
     try:
         metrics = common.backtest(strategy, oos_range, "gate")
     except RuntimeError:

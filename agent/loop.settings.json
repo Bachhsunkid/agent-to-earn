@@ -22,6 +22,7 @@
       "Read(agent/runs/readiness/**)",
       "Read(user_data/backtest_results/readiness/**)",
       "Read(user_data/backtest_results/gate/**)",
+      "Read(docs/adr/**)",
       "Edit(user_data/strategies/guarded_strategy.py)",
       "Edit(user_data/strategies/live/**)",
       "Edit(user_data/*.json)",

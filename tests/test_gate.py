@@ -161,7 +161,8 @@ def test_repo_lock_matches_protected_files():
 # --- criteria ------------------------------------------------------------------
 
 GOOD_OOS = {"total_trades": 30, "profit_factor": 1.3, "profit_total": 0.2, "profit_total_abs": 68,
-            "max_drawdown_account": 0.1, "max_leverage": 10.0}
+            "profit_fixed_abs": 60, "profit_fixed_ex_best_abs": 20, "max_drawdown_account": 0.1,
+            "max_leverage": 10.0}
 
 
 def test_evaluate_passes_and_fails_each_rule():
@@ -176,9 +177,18 @@ def test_evaluate_passes_and_fails_each_rule():
 
 def test_beats_incumbent():
     assert gate.beats_incumbent(GOOD_OOS, None) == []
-    assert gate.beats_incumbent(GOOD_OOS, {"profit_total_abs": 10, "max_drawdown_account": 0.08}) == []
-    assert gate.beats_incumbent(GOOD_OOS, {"profit_total_abs": 100, "max_drawdown_account": 0.01}) == [
+    live = {"profit_fixed_abs": 10, "profit_fixed_ex_best_abs": -5, "max_drawdown_account": 0.08}
+    assert gate.beats_incumbent(GOOD_OOS, live) == []
+    assert gate.beats_incumbent(GOOD_OOS, {**live, "profit_fixed_abs": 100, "max_drawdown_account": 0.01}) == [
         "beat_live_profit", "beat_live_drawdown"]
+
+
+def test_one_outlier_cannot_win_the_comparison():
+    # More profit in total, but all of it from one trade: the live strategy is better without it.
+    outlier = {**GOOD_OOS, "profit_total_abs": 1450, "profit_fixed_abs": 1650, "profit_fixed_ex_best_abs": -31}
+    live = {"profit_total_abs": 26, "profit_fixed_abs": 31, "profit_fixed_ex_best_abs": -13,
+            "max_drawdown_account": 0.1}
+    assert gate.beats_incumbent(outlier, live) == ["beat_live_profit_ex_best"]
 
 
 # --- dynamic checks with docker mocked ------------------------------------------
@@ -220,10 +230,14 @@ def test_lookahead_command_failure(monkeypatch):
 def test_incumbent_oos_cached(tmp_path, monkeypatch):
     monkeypatch.setattr(gate, "GATE_RESULTS", tmp_path)
     calls = []
-    monkeypatch.setattr(common, "backtest", lambda s, t, tag: calls.append(s) or {"profit_total_abs": 5})
-    assert gate.incumbent_oos("Live", "20260701-") == {"profit_total_abs": 5}
-    assert gate.incumbent_oos("Live", "20260701-") == {"profit_total_abs": 5}
+    metrics = {"profit_fixed_ex_best_abs": 5}
+    monkeypatch.setattr(common, "backtest", lambda s, t, tag: calls.append(s) or metrics)
+    assert gate.incumbent_oos("Live", "20260701-") == metrics
+    assert gate.incumbent_oos("Live", "20260701-") == metrics
     assert calls == ["Live"]
+    (tmp_path / "incumbent-Old-20260701.json").write_text('{"profit_total_abs": 1}')
+    assert gate.incumbent_oos("Old", "20260701-") == metrics  # cache without fixed-stake metrics
+    assert calls == ["Live", "Old"]
 
 
 def test_incumbent_oos_backtest_failure(tmp_path, monkeypatch):
@@ -269,7 +283,8 @@ def fake_dynamic(monkeypatch, oos_metrics=GOOD_OOS, integrity=()):
     monkeypatch.setattr(gate, "check_integrity", lambda: list(integrity))
     monkeypatch.setattr(gate, "run_tests", lambda: [])
     monkeypatch.setattr(gate, "lookahead", lambda s, t: [])
-    monkeypatch.setattr(gate, "incumbent_oos", lambda s, t: {"profit_total_abs": 1, "max_drawdown_account": 0.1})
+    monkeypatch.setattr(gate, "incumbent_oos", lambda s, t: {"profit_fixed_abs": 1, "profit_fixed_ex_best_abs": -5,
+                                                           "max_drawdown_account": 0.1})
     monkeypatch.setattr(gate, "reload_bot", lambda: "bot reloaded")
     in_sample = {"total_trades": 100, "profit_factor": 1.2, "profit_total": 0.3,
                  "max_drawdown_account": 0.2, "max_leverage": 10.0}
@@ -505,7 +520,9 @@ def test_notify(monkeypatch):
 
 def test_bt_metrics_summarize():
     stats = {"strategy": {"S": {
-        "total_trades": 2, "profit_total": 0.1, "trades": [{"leverage": 3.0}, {"leverage": 10.0}],
+        "total_trades": 2, "profit_total": 0.1, "starting_balance": 100.0,
+        "trades": [{"leverage": 3.0, "profit_abs": 1.0, "open_timestamp": 1, "close_timestamp": 2},
+                   {"leverage": 10.0, "profit_abs": 0.5, "open_timestamp": 3, "close_timestamp": 4}],
         "results_per_pair": [{"key": "BTC", "trades": 2, "profit_total_abs": 1.234},
                              {"key": "TOTAL", "trades": 2, "profit_total_abs": 1.234}],
         "exit_reason_summary": [{"key": "stop_loss", "trades": 1, "profit_total_abs": -2.0}],
@@ -516,6 +533,19 @@ def test_bt_metrics_summarize():
     assert out["exit_reasons"][0]["reason"] == "stop_loss"
     assert "per_pair" not in bt_metrics.summarize(stats, "S")
     assert out["fees_abs"] == 0 and out["avg_hold_hours"] == 0
+
+
+def test_bt_metrics_fixed_stake_profit():
+    # +100 doubles equity, so the next trade's -20 was sized from 200: -10 at a fixed stake.
+    trades = [{"profit_abs": 100.0, "open_timestamp": 0, "close_timestamp": 10},
+              {"profit_abs": -20.0, "open_timestamp": 20, "close_timestamp": 30},
+              {"profit_abs": 5.0, "open_timestamp": 5, "close_timestamp": 25}]  # opened before the +100 closed
+    assert bt_metrics.fixed_stake_profit(trades, 100.0) == {"profit_fixed_abs": 95.0,
+                                                            "profit_fixed_ex_best_abs": -5.0}
+    losers = [{"profit_abs": -1.0, "open_timestamp": 0, "close_timestamp": 1}]
+    assert bt_metrics.fixed_stake_profit(losers, 100.0) == {"profit_fixed_abs": -1.0,
+                                                            "profit_fixed_ex_best_abs": -1.0}
+    assert bt_metrics.fixed_stake_profit([], 100.0) == {"profit_fixed_abs": 0, "profit_fixed_ex_best_abs": 0}
 
 
 def test_bt_metrics_trading_costs():
