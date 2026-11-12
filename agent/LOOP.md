@@ -68,7 +68,8 @@ Read this before picking a hypothesis; it overrides older journal notes.
   (often squeezed small caps paying longs a large negative funding) make the year. Check
   how much of a candidate's profit comes from its top 3 pairs and from funding.
 - The live strategy was TrendLong4hV1 (TrendRegimeV1's breakout on 4h, long only) until the
-  gate promoted TrendLongSlowExit4hV1 (the same with a 20-bar exit) on 2026-11-10.
+  gate promoted TrendLongSlowExit4hV1 (the same with a 20-bar exit) on 2026-11-10, then
+  LongBreakout60Exit30V1 (60-bar breakout, 30-bar exit) on 2026-11-12.
 - A Bollinger/RSI mean-reversion on 4h (RangeReversion2hV1, 2026-11-04 journal) was the
   only idea positive on every universe tested, with a third of the drawdown, but small.
 

@@ -4,12 +4,12 @@ from pandas import DataFrame
 from guarded_strategy import GuardedStrategy
 
 
-class TrendLongSlowExit4hV1(GuardedStrategy):
-    """TrendLong4hV1 entries with a slower exit: the 20-bar Donchian low instead of the 10-bar.
+class LongBreakout60Exit30V1(GuardedStrategy):
+    """Long breakout of the 60-bar (10 day) high with a 30-bar Donchian low exit.
 
-    The live strategy's profit comes from a few long runs (and the funding they collect),
-    while the 10-bar exit cuts them at the first pullback. A wider exit lets winners run.
-    Entries, stop and regime are unchanged.
+    The live 20-bar breakout fires 120 times for 22% winners, and the profit is a few long
+    runs. A 10-day high demands a more durable breakout, so fewer entries barely cover fees,
+    and the 30-bar exit lets the real runs (and their funding) continue.
     """
 
     timeframe = "4h"
@@ -21,8 +21,8 @@ class TrendLongSlowExit4hV1(GuardedStrategy):
         df["ema_slow"] = ta.EMA(df, timeperiod=200)
         df["adx"] = ta.ADX(df, timeperiod=14)
         df["atr"] = ta.ATR(df, timeperiod=14)
-        df["dc_high"] = df["high"].rolling(20).max().shift(1)
-        df["exit_low"] = df["low"].rolling(20).min().shift(1)
+        df["dc_high"] = df["high"].rolling(60).max().shift(1)
+        df["exit_low"] = df["low"].rolling(30).min().shift(1)
 
         atr_pct = df["atr"] / df["close"]
         df["atr_rank"] = atr_pct.rolling(500, min_periods=100).rank(pct=True)
