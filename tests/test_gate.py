@@ -2,7 +2,7 @@ import io
 import json
 import subprocess
 import urllib.error
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -301,6 +301,50 @@ def test_run_gate_promotes_passing_candidate(strategy_tree, monkeypatch):
     assert gate.summary_text(report).startswith("Gate PASSED: GoodCandidate")
 
 
+def write_gate_report(name: str, action: str, age: timedelta) -> None:
+    gate.GATE_RESULTS.mkdir(parents=True, exist_ok=True)
+    time = (datetime.now(UTC) - age).isoformat(timespec="seconds")
+    (gate.GATE_RESULTS / name).write_text(json.dumps({"time": time, "action": action}))
+
+
+def test_cooldown_defers_candidates_after_a_recent_promotion(strategy_tree, monkeypatch):
+    fake_dynamic(monkeypatch)
+    monkeypatch.setattr(gate, "run_tests", lambda: pytest.fail("tests must not run"))
+    write_gate_report("20261111T010000Z-Prev.json", "promoted; bot reloaded", timedelta(days=1))
+    report = gate.run_gate(strategy_tree / "candidates" / "good.py", date(2026, 10, 29))
+    assert not report["passed"] and report["action"].startswith("deferred")
+    assert list(report["checks"]) == ["integrity", "cooldown"]
+    assert report["checks"]["cooldown"][0].startswith("promotions paused until")
+    assert (strategy_tree / "candidates" / "good.py").exists()
+    assert not gate.is_urgent(report)
+
+
+def test_cooldown_ends_and_ignores_other_reports(strategy_tree, monkeypatch):
+    fake_dynamic(monkeypatch)
+    write_gate_report("20261020T010000Z-Old.json", "promoted; bot reloaded", timedelta(days=15))
+    write_gate_report("20261111T010000Z-Bad.json", "rejected", timedelta(days=1))
+    write_gate_report("incumbent-Old-20260715.json", "promoted", timedelta(days=1))
+    (gate.GATE_RESULTS / "20261112T010000Z-Broken.json").write_text("{")
+    assert gate.promotions_paused_until(datetime.now(UTC)) is None
+    report = gate.run_gate(strategy_tree / "candidates" / "good.py", date(2026, 10, 29))
+    assert report["passed"] and report["action"].startswith("promoted")
+
+
+def test_dry_run_ignores_cooldown(strategy_tree, monkeypatch):
+    fake_dynamic(monkeypatch)
+    write_gate_report("20261111T010000Z-Prev.json", "promoted; bot reloaded", timedelta(hours=1))
+    report = gate.run_gate(strategy_tree / "candidates" / "good.py", date(2026, 10, 29), promote_on_pass=False)
+    assert report["passed"] and "cooldown" not in report["checks"]
+
+
+def test_main_starts_the_cooldown(strategy_tree, monkeypatch, capsys):
+    fake_dynamic(monkeypatch)
+    monkeypatch.setattr(notify, "send", lambda text: True)
+    assert gate.main([str(strategy_tree / "candidates" / "good.py")]) == 0
+    until = gate.promotions_paused_until(datetime.now(UTC))
+    assert until and timedelta(days=13) < until - datetime.now(UTC) <= gate.PROMOTION_COOLDOWN
+
+
 def test_run_gate_rejects_on_oos_failure_without_leaking_numbers(strategy_tree, monkeypatch):
     fake_dynamic(monkeypatch, oos_metrics={**GOOD_OOS, "max_drawdown_account": 0.5})
     report = gate.run_gate(strategy_tree / "candidates" / "good.py", date(2026, 10, 29))
@@ -568,10 +612,11 @@ def test_bt_metrics_main(monkeypatch, capsys):
 
 # --- perf_snapshot -------------------------------------------------------------------
 
-def test_perf_snapshot(monkeypatch, capsys):
+def test_perf_snapshot(monkeypatch, capsys, tmp_path):
     import perf_snapshot
 
     set_api_env(monkeypatch)
+    monkeypatch.setattr(gate, "GATE_RESULTS", tmp_path)
     replies = {
         "profit": {"trade_count": 3, "profit_all_coin": 1.5},
         "status": [{"pair": "BTC/USDT:USDT", "leverage": 5, "is_open": True}],
@@ -589,6 +634,10 @@ def test_perf_snapshot(monkeypatch, capsys):
     assert out["recent_closed"][0]["pair"] == "ETH/USDT:USDT"
     assert out["recent_closed_by_retired_strategies"] == 1
     assert out["open_trades"][0]["leverage"] == 5
+    assert out["promotions_paused_until"] is None
+    write_gate_report("20261111T010000Z-Prev.json", "promoted; bot reloaded", timedelta(days=1))
+    assert perf_snapshot.main() == 0
+    assert json.loads(capsys.readouterr().out)["promotions_paused_until"]
 
     def down(req, timeout):
         raise urllib.error.URLError("down")

@@ -7,8 +7,10 @@ Usage: python3 agent/perf_snapshot.py
 import json
 import sys
 import urllib.request
+from datetime import UTC, datetime
 
 import common
+import gate
 
 TRADE_FIELDS = ("pair", "strategy", "is_short", "leverage", "stake_amount", "open_date", "close_date",
                 "profit_ratio", "profit_abs", "exit_reason", "enter_tag")
@@ -33,6 +35,7 @@ def main() -> int:
         return 1
     strategy = config.get("strategy")
     closed = [t for t in recent if not t.get("is_open")]
+    paused = gate.promotions_paused_until(datetime.now(UTC))
     snapshot = {
         "strategy": strategy,
         "dry_run": config.get("dry_run"),
@@ -44,6 +47,8 @@ def main() -> int:
         "open_trades": [{k: t.get(k) for k in TRADE_FIELDS} for t in open_trades],
         "recent_closed": [{k: t.get(k) for k in TRADE_FIELDS} for t in closed if t.get("strategy") == strategy],
         "recent_closed_by_retired_strategies": sum(t.get("strategy") != strategy for t in closed),
+        # The gate does not promote before this time (UTC), so do not submit until then.
+        "promotions_paused_until": paused.isoformat(timespec="minutes") if paused else None,
     }
     print(json.dumps(snapshot, indent=1, default=str))
     return 0

@@ -10,6 +10,8 @@ A candidate replaces the live strategy only if every check passes:
   5. in-sample and out-of-sample backtests meet CRITERIA and beat the live strategy out of
      sample, at a fixed stake both with and without each side's single best trade
 Passing candidates move to live/ and the bot reloads; failing ones move to the archive.
+Within PROMOTION_COOLDOWN of the last promotion the gate stops after the integrity check and
+leaves the candidate in candidates/, so the live strategy keeps trading long enough to judge.
 The agent sees pass/fail per out-of-sample criterion, never the out-of-sample numbers.
 """
 
@@ -24,7 +26,7 @@ import subprocess
 import sys
 import time
 import urllib.request
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import common
@@ -65,6 +67,9 @@ PROTECTED = [
 GATE_RESULTS = common.RUNS / "gate"
 RUN_LOCK = common.RUNS / ".gate.lock"
 STALE_LOCK_SECONDS = 3 * 3600
+# At about 10 trades a month a strategy needs weeks of paper trading before it can be
+# judged, and every promotion restarts that clock (docs/adr/0008-promotion-cooldown.md).
+PROMOTION_COOLDOWN = timedelta(days=14)
 
 CRITERIA = {
     "in_sample": {"min_trades": 40, "min_profit_factor": 1.0, "max_drawdown": 0.30},
@@ -268,6 +273,20 @@ def incumbent_oos(strategy: str, oos_range: str) -> dict | None:
     return metrics
 
 
+def promotions_paused_until(now: datetime) -> datetime | None:
+    """End of the cooldown after the last promotion, if it has not passed yet."""
+    promoted = []
+    for path in GATE_RESULTS.glob("2*.json"):  # gate reports, not the incumbent-* caches
+        try:
+            report = json.loads(path.read_text())
+            if str(report.get("action", "")).startswith("promoted"):
+                promoted.append(datetime.fromisoformat(report["time"]))
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+    until = max(promoted, default=None)
+    return until + PROMOTION_COOLDOWN if until and until + PROMOTION_COOLDOWN > now else None
+
+
 # --- outcome -----------------------------------------------------------------
 
 def promote(candidate: Path, class_name: str) -> None:
@@ -308,7 +327,8 @@ def acquire_lock() -> bool:
 
 
 def run_gate(candidate: Path, today: date, promote_on_pass: bool = True) -> dict:
-    report: dict = {"candidate": candidate.name, "time": datetime.now(UTC).isoformat(timespec="seconds"),
+    now = datetime.now(UTC)
+    report: dict = {"candidate": candidate.name, "time": now.isoformat(timespec="seconds"),
                     "checks": {}, "passed": False}
 
     def step(name: str, errors: list[str]) -> bool:
@@ -320,7 +340,13 @@ def run_gate(candidate: Path, today: date, promote_on_pass: bool = True) -> dict
                          *(p for p in common.CANDIDATES.glob("*.py") if p != candidate)])
     class_name, static_errors = static_check(candidate.read_text(), taken, guarded_members())
     report["strategy"] = class_name
-    ok = step("integrity", check_integrity()) and step("static", static_errors) and step("tests", run_tests())
+    ok = step("integrity", check_integrity())
+    paused = promotions_paused_until(now) if ok and promote_on_pass else None
+    if paused:
+        step("cooldown", [f"promotions paused until {paused:%Y-%m-%d %H:%M} UTC"])
+        report["action"] = "deferred; the candidate stays in candidates/"
+        return report
+    ok = ok and step("static", static_errors) and step("tests", run_tests())
     if ok:
         ok = step("lookahead", lookahead(class_name, in_range))
     if ok:

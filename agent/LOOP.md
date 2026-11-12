@@ -22,6 +22,7 @@ size, stop-loss, drawdown breakers and the equity floor live in
   `python3 agent/bt.py <ClassName> [--timerange YYYYMMDD-YYYYMMDD]`
 - Bot snapshot: `python3 agent/perf_snapshot.py`
 - Submit once: `python3 agent/gate.py user_data/strategies/candidates/<file>.py`
+  (not while `promotions_paused_until` in the snapshot is in the future, see Procedure)
 - Write `agent/journal/<YYYY-MM-DD>.md` (today's UTC date).
 
 Anything else is denied. Do not try to work around a denial.
@@ -86,6 +87,12 @@ Read this before picking a hypothesis; it overrides older journal notes.
    strategy (not a variant of it) with profit factor >= 1.1 and clearly lower drawdown.
    The gate's held-out test decides; the in-sample period may favour the live strategy's
    style. Otherwise do not submit; record why in the journal.
+   The gate promotes at most once every 14 days, so the live strategy trades long enough
+   to be judged. While the snapshot's `promotions_paused_until` is in the future, do not
+   submit: leave the candidate in `candidates/` and note in the journal whether it qualifies.
+   Once the pause is over you may submit the best qualifying earlier candidate (re-run its
+   backtest first) instead of writing a new one. A candidate submitted during the pause is
+   not judged and stays in `candidates/`.
 6. Write the journal entry:
 
 ```

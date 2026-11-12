@@ -159,8 +159,9 @@ def build(bot_get, journal: list[dict], runs: list[dict], gates: list[dict], str
         "mood": mood(bot, research, now.strftime("%Y-%m-%d"), recent(donations, now)),
         "bot": bot,
         "research": research,
-        # Reports without an action are gate dry runs (promote_on_pass=False), not decisions.
-        "gate": [gate_entry(r) for r in gates if r.get("action")],
+        # Reports without an action are gate dry runs (promote_on_pass=False), and deferred
+        # ones were held back by the promotion cooldown: neither is a decision.
+        "gate": [gate_entry(r) for r in gates if r.get("action") and not r["action"].startswith("deferred")],
         "strategies": {"live": strategies.get("live"), "retired": strategies.get("retired", [])},
         "watchdog_ok": watchdog_ok,
         "donations": donations_section(donations),

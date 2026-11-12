@@ -38,6 +38,8 @@ GATES = [
     {"strategy": "TrendRegimeV2", "time": "2026-10-30T03:00:00+00:00", "passed": True,
      "action": "promoted; bot reloaded", "checks": {}},
     {"strategy": "GateSmokeTest", "passed": False, "checks": {}},  # dry run, no action
+    {"strategy": "Waiting", "passed": False, "action": "deferred; the candidate stays in candidates/",
+     "checks": {"integrity": "ok", "cooldown": ["promotions paused until 2026-11-26 01:12 UTC"]}},
 ]
 JOURNAL = [{"date": "2026-10-31", "tldr": ["Hypothesis: wider stops"], "notes": ["- try 4h"]}]
 RUNS = [{"date": "2026-10-31", "stage": "done"}]
