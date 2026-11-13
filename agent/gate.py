@@ -259,11 +259,14 @@ def beats_incumbent(candidate: dict, incumbent: dict | None) -> list[str]:
     return failures
 
 
-def incumbent_oos(strategy: str, oos_range: str) -> dict | None:
+def incumbent_oos(strategy: str, oos_range: str, starting_balance: float | None = None) -> dict | None:
     cache = GATE_RESULTS / f"incumbent-{strategy}-{oos_range.rstrip('-')}.json"
     if cache.exists():
         cached = json.loads(cache.read_text())
-        if "profit_fixed_ex_best_abs" in cached:  # older caches lack the fixed-stake metrics
+        # Older caches lack the fixed-stake metrics, and profits in USDT are only comparable
+        # at the candidate's starting balance.
+        if "profit_fixed_ex_best_abs" in cached and (
+                starting_balance is None or cached.get("starting_balance") == starting_balance):
             return cached
     try:
         metrics = common.backtest(strategy, oos_range, "gate")
@@ -359,7 +362,7 @@ def run_gate(candidate: Path, today: date, promote_on_pass: bool = True) -> dict
             report["in_sample"] = m_in
             report["out_of_sample_private"] = m_oos
             oos_failures = evaluate(m_oos, CRITERIA["out_of_sample"]) + beats_incumbent(
-                m_oos, incumbent_oos(common.current_strategy(), oos_range))
+                m_oos, incumbent_oos(common.current_strategy(), oos_range, m_oos.get("starting_balance")))
             ok = step("in_sample", evaluate(m_in, CRITERIA["in_sample"])) & step("out_of_sample", oos_failures)
     report["passed"] = ok
     if promote_on_pass:

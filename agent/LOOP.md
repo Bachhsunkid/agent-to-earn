@@ -74,6 +74,9 @@ Read this before picking a hypothesis; it overrides older journal notes.
 - A Bollinger/RSI mean-reversion on 4h (RangeReversion2hV1, 2026-11-04 journal) was the
   only idea positive on every universe tested, with a third of the drawdown, but small.
 
+Backtests and the paper bot start with 1000 USDT since 2026-11-13 (340 before). Profit in
+USDT from journals before that date is not comparable; re-run the baseline yourself.
+
 ## Procedure
 
 1. Read the 3 most recent journal entries, the live strategy in `user_data/strategies/live/`,

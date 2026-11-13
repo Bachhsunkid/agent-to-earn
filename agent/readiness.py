@@ -35,7 +35,7 @@ MATCH_WINDOW = timedelta(hours=2)
 MIN_UPTIME = 0.95
 UPTIME_HOURS = 72
 # Paper may trail the backtest by this much before it counts as a failure.
-PROFIT_TOLERANCE_ABS = 5.0
+PROFIT_TOLERANCE_ABS = 15.0  # about 1.5% of the 1000 USDT paper wallet
 PROFIT_TOLERANCE_REL = 0.30
 
 

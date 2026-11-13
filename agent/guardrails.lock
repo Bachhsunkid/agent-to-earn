@@ -1,6 +1,6 @@
 {
   "user_data/strategies/guarded_strategy.py": "baf4f090708f381936013637ea9e5f14171b59362d107102935dff3a400026ec",
-  "user_data/config.json": "6d1698eb4eb7878c1f2d73d18ab5e98d05f91113f37be61d6e9640df4dd8e3e1",
+  "user_data/config.json": "a695cfc932021d74a754b54d3e7c6bd8aa78a6f1606d34f53aca459891fc9017",
   "user_data/config.live.json": "7d867527d3db25bce7187bb31cf5ef1841b18e4bfb69bd60f40df78dfe9a633e",
   "user_data/config.rpc.json": "b9e5640665f7581aa69909fbfba8f68f6a8d9c2455d15e02f4bc2e7e877c9541",
   "docker-compose.yml": "2a7396e6a7f45a60c79b78181ed086c407b25b5ac4c7c925e5b64066062f0902",
@@ -8,14 +8,14 @@
   "docker/bot-entrypoint.sh": "e2d755e9abc63dbfbc2ff2d1829bc640c21cb5b58ace1484afab3921cdf81ffc",
   "Makefile": "042e0bec7b7ea5dfc2c5e7e9fc6766792e11deb23d138a6309ae156e83e76ad0",
   "pytest.ini": "140deb8d293672c09b977a2678cf03c6137bbb8b94602fbcdabbd0773a7a0de4",
-  "agent/gate.py": "6b887bac0b2576af8025e8d0e8221163919b57168f765120a8a85780ee94aa7c",
+  "agent/gate.py": "59692c025c65b6ff021691cd3f8669c99d1529609bfe6f8b65dc9fe3fc2b577e",
   "agent/common.py": "6100af2cb930b99907f7d01d7031af4757ff64dc26f2793a4ff7801af0e48906",
   "agent/bt.py": "6975106f05c46b3fc3c2b5437f8617abf496d4e6d0a11fa48eab1188eed98cf4",
   "agent/bt_metrics.py": "7443a401694484c8dea2f39f1e764070172cd0327e963f36a3448debd58f7315",
   "agent/notify.py": "1a87eb927ee103fd7f8f7a679ca979885519be0f09a7fa77142f83f48af1a7ae",
   "agent/perf_snapshot.py": "344c934e7099f252f0b82e2d942d3b50cc4f1c80bfadcdf08dbe8039684dc03f",
-  "agent/readiness.py": "e7fd2bd11e81bffd15e91296d7a6a73f660f34b8e80beba41c7572c9ef2e6f5d",
-  "agent/LOOP.md": "733164833dc9c8770088d82249a5389736c467399e4fffb662f3e39eb4534156",
+  "agent/readiness.py": "80286578426a0ba1637adf89c97fc789678b4cc8b6b41d907ba7f865af6bdd05",
+  "agent/LOOP.md": "32cb1607855e3d4b5c25a4e58377968168a245dee010c4042cb8ca65ff68fd2c",
   "agent/loop.settings.json": "c65bf0a78817f05f4fbcf5fb316da713df12c0c7d6e9aeb6ff473b761a6fd2a6",
   "agent/run_loop.sh": "ae4dabc54d2003a519feb39b8eb827d5fff2424aa5c07e0c630bf7e1f3e5110d",
   "agent/scheduler.sh": "a773b8ec3808e691080676a9f1d25d5c7b6eefb72f5beb338e54d3e4fb7ba523",
@@ -27,5 +27,5 @@
   "public/app.py": "29960825f1b1f158672eeabf683a05955dcf50e68add2fd6efd4ed05c05978ff",
   "tests/conftest.py": "24b046fffe3bbac8512d16fc80916c95880d2e7eef5e5f87057ad5141ed67250",
   "tests/test_guarded_strategy.py": "265477b9c8eaae5c040fc27d8529b71e19277d1b442f6ae9a501d34b2b39336a",
-  "tests/test_gate.py": "a308754c21f6d016145df7e449fe085fa2a3057ed32640e636d5daa4e79edc00"
+  "tests/test_gate.py": "c0cffe88b1096f77ae3c838854de9719fcfde7d47b96ff4b4c38a450d7113958"
 }

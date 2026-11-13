@@ -238,6 +238,12 @@ def test_incumbent_oos_cached(tmp_path, monkeypatch):
     (tmp_path / "incumbent-Old-20260701.json").write_text('{"profit_total_abs": 1}')
     assert gate.incumbent_oos("Old", "20260701-") == metrics  # cache without fixed-stake metrics
     assert calls == ["Live", "Old"]
+    metrics["starting_balance"] = 340
+    (tmp_path / "incumbent-Old-20260701.json").write_text(json.dumps(metrics))
+    assert gate.incumbent_oos("Old", "20260701-", 340) == metrics
+    assert calls == ["Live", "Old"]
+    assert gate.incumbent_oos("Old", "20260701-", 1000) == metrics  # cached at another balance
+    assert calls == ["Live", "Old", "Old"]
 
 
 def test_incumbent_oos_backtest_failure(tmp_path, monkeypatch):
@@ -283,7 +289,7 @@ def fake_dynamic(monkeypatch, oos_metrics=GOOD_OOS, integrity=()):
     monkeypatch.setattr(gate, "check_integrity", lambda: list(integrity))
     monkeypatch.setattr(gate, "run_tests", lambda: [])
     monkeypatch.setattr(gate, "lookahead", lambda s, t: [])
-    monkeypatch.setattr(gate, "incumbent_oos", lambda s, t: {"profit_fixed_abs": 1, "profit_fixed_ex_best_abs": -5,
+    monkeypatch.setattr(gate, "incumbent_oos", lambda s, t, b=None: {"profit_fixed_abs": 1, "profit_fixed_ex_best_abs": -5,
                                                            "max_drawdown_account": 0.1})
     monkeypatch.setattr(gate, "reload_bot", lambda: "bot reloaded")
     in_sample = {"total_trades": 100, "profit_factor": 1.2, "profit_total": 0.3,

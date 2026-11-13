@@ -148,8 +148,10 @@ runs it now. Then:
 2. Create an API key with **Enable Futures only, withdrawals off**; whitelist the VM IP.
 3. In `.env` set `BINANCE_KEY`, `BINANCE_SECRET` and `DRY_RUN=false`, then
    `docker compose up -d`. The bot refuses to start live without the key.
-4. Live mode uses `user_data/config.live.json` (`available_capital: 115`, 1/3 of the
-   capital) and a separate trade database. Raise the limit once the gate criteria hold live.
+4. Live mode uses `user_data/config.live.json` (`available_capital`, the most the bot may
+   trade with) and a separate trade database. Paper trading runs on 1000 USDT
+   ([ADR-0009](docs/adr/0009-paper-capital-1000.md)); set the limit to what you deposited,
+   or start with part of it and raise it once the gate criteria hold live.
 
 ## Layout
 
